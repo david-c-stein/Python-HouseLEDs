@@ -1,0 +1,73 @@
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="css/ledstrip.css" />
+    <script type="text/javascript" src="js/jquery.js"></script>
+    <script type="text/javascript" src="js/rAF.js"></script>
+    <script type="text/javascript" src="js/ledstrip.js"></script>
+    <script type="text/javascript" src="js/ws2812.js"></script>
+    <script type="text/javascript" src="js/arduino_funcs.js"></script>
+    <script type="text/javascript" src="js/color_wave.js"></script>
+    <script type="text/javascript" src="js/generator.js"></script>
+    <script type="text/javascript" src="js/chasers.js"></script>
+    <script type="text/javascript">
+
+    var strip, animation;  // Global
+
+    $(document).ready(function(){
+      var container = $('.ledstrip')[0];
+      var light_count = 50;
+      strip = LEDstrip(container, light_count);
+      driver = new ColorWave(strip);
+      driver.init();
+      animation = driver.animate.bind(driver)();
+
+      $('#diffuser').change(function(e) {
+        $('.ledstrip').toggleClass('diffuse');
+      });
+
+      $('#animselect').change(function(e) {
+        var newanim = $(e.target).val();
+        console.log('change! ' + newanim); 
+        animation = cancelAnimationFrame(animation);
+        switch(newanim) {
+          case 'wave':
+            driver = new ColorWave(strip);
+            break;
+          case 'chasers':
+            driver = new Chasers(strip);
+            break;
+          case 'generator':
+            driver = new Generator(strip);
+            break;
+          case 'stop':
+            animation = cancelAnimationFrame(animation);
+            return;
+            break;
+        } // /switch
+        driver.init();
+        animation = driver.animate();
+      });
+    });
+    </script>
+</head>
+<body>
+       <header>
+         <h1>LED Strip Web Display</h1>
+       </header>
+       <article>
+         <div class="ledstrip"></div>
+         <br />
+         <form>
+           <select id="animselect">
+             <option value="wave">Color Wave</option>
+             <option value="chasers">Chasers</option>
+             <option value="generator">Generator</option>
+             <option value="stop">Stop</option>
+           </select>
+           <input type="checkbox" id="diffuser" value="0" /> <label for="diffuser">Diffuser</label>
+         </form>
+         <p id="output"></p>
+         <p>For more information:</p>
+       </article>
+     </body>
+     </html>
