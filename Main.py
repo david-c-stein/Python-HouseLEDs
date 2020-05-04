@@ -10,7 +10,6 @@ import platform
 import sys
 import time
 import ephem
-import fpstimer
 import numpy
 
 import Global
@@ -73,10 +72,9 @@ class myApp(object):
         self.logConfig = Logger.logConfig
 
         # San Jose International Airport
-        lat = '37.236373767'  # latitude
-        lon = '-121.92913348' # longtitude
-        alt = 12              # altitude (meters)
-        self.sun = Sun(lat, lon, alt)
+        self.lat = '37.236373767'  # latitude
+        self.lon = '-121.92913348' # longtitude
+        self.alt = 12              # altitude (meters)
 
         self.FRAMES_PER_SECOND = 30
         self.msLoopDelta = round(1.0/self.FRAMES_PER_SECOND, 4)
@@ -110,41 +108,58 @@ class myApp(object):
         self.running = True
         run = True
 
+        # start today 8a
+        startTime = datetime.time(hour=7, minute=0)
+        # stop today 12+9:30p
+        stopTime = datetime.time(hour=21, minute=30)
+
+        showStartTime = datetime.datetime.combine(datetime.datetime.today(), startTime)
+        showStopTime = datetime.datetime.combine(datetime.datetime.today(), stopTime)
+
         while(run):
             try:
+                self.sun = Sun(self.lat, self.lon, self.alt)
                 sunrise = self.sun.nextSunrise()
                 sunset = self.sun.nextSunset()
 
                 self.logger.info("Next sunrise: " + str(sunrise))
                 self.logger.info("Next sunset: " + str(sunset))
 
-                showStart = sunset - datetime.timedelta(hours=0, minutes=30)
-                showStop = sunset + datetime.timedelta(hours=6, minutes=0)
+                #showStartTime = sunrise
+                #showStartTime = sunset - datetime.timedelta(hours=0, minutes=30)
+                #shhowStopTime = sunset + datetime.timedelta(hours=2, minutes=0)
+
+                self.logger.info("showStartTime: " + str(showStartTime))
+                self.logger.info("showStopTime: " + str(showStopTime))
 
                 now = datetime.datetime.now()
 
-                #-----------------------------------------
-                # for test
-                showStart = now - datetime.timedelta(hours=0, minutes=30)
-                #-----------------------------------------
+                # this might be the next days sunrise if in running time
+                if showStartTime > now and now < showStopTime:
+                    showStartTime = now - datetime.timedelta(hours=2, minutes = 0)
 
-                if showStart < now < showStop:
+                if showStartTime < now < showStopTime:
                     # initialize and run
                     self.initialize()
-                    self.start(showStop)
+                    self.start(showStopTime)
                     self.stop()
-                else:
-                    diff = showStart - now
+                    
+                elif showStopTime < now:
+                    # start and stop times for tomorrow
+                    showStartTime = datetime.datetime.combine(datetime.datetime.today() + datetime.timedelta(days=1), startTime)
+                    showStopTime = datetime.datetime.combine(datetime.datetime.today() + datetime.timedelta(days=1), stopTime)
+                                        
+                    diff = showStartTime - now
                     self.logger.info( "Sleeping : " + str(diff.seconds) + " seconds" )
                     time.sleep(diff.seconds)
 
             except(KeyboardInterrupt, SystemExit):
                 self.logger.info("Interrupted Main process")
-
+                self.stop()
+                run = False
+                
             except Exception as e:
                 self.logger.exception(e)
-
-            finally:
                 self.stop()
                 run = False
 
@@ -339,7 +354,7 @@ class myApp(object):
               215,218,220,223,225,228,231,233,236,239,241,244,247,249,252,255 ]
 
 
-            #check = self.FRAMES_PER_SECOND * 60
+            check = self.FRAMES_PER_SECOND * 60
 
             try:
                 while self.running:
@@ -353,16 +368,21 @@ class myApp(object):
                         
                     self._delay()
 
-                    #if stopTime:
-                    #    if(check <= 0) :
-                    #        check = self.FRAMES_PER_SECOND * 60
-                    #        now = datetime.datetime.now()
-                    #        if (now > stopTime):
-                    #            self.running = False
-                    #            self.logger.info("Stopping : stopTime reached")
-                    #
-                    #    else:
-                    #        check -= 1
+                    if stopTime:
+                        if(check <= 0) :
+                            check = self.FRAMES_PER_SECOND * 60
+                            now = datetime.datetime.now()
+                            if (now > stopTime):
+                                self.running = False
+                                self.logger.info("Stopping : stopTime reached")
+
+                                # turn off all the leds
+                                for i in range(self.ledCount):
+                                    self.strip.setPixelColorRGB(i,0,0,0,0)
+                                print("ALL: off")
+                                self.strip.show()
+                        else:
+                            check -= 1
 
             except(KeyboardInterrupt, SystemExit):
                 self.logger.info("Interupted PatternEngine process")
@@ -383,7 +403,6 @@ class myApp(object):
 
     #-----------------------
     def stop(self):
-
         # stop processes
         if(self.pPE != None):
             self.pPE.stop()
@@ -391,7 +410,9 @@ class myApp(object):
             self.pAU.stop()
         if(self.pWS != None):
             self.pWS.stop()
-
+        self.pPE = None
+        self.pAU = None
+        self.pWS = None
         self.running = False
 
     #-----------------------

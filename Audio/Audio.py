@@ -5,86 +5,64 @@ import logging.config
 import threading
 import time
 
+from mpg123 import Mpg123, Out123
+
 import numpy
-import pygame
 
-import Global
-
-if Global.__MULTIPROCESSING__:
-    import multiprocessing
+try:
+    import Global
+    if Global.__MULTIPROCESSING__:
+        import multiprocessing
+except ImportError:
+    class Global:
+        __MULTIPROCESSING__ = False
 
 
 class Player(object):
+    '''
+        Audio on Raspberry PI
 
+        learn.adafruit.com/usb-audio-cards-with-a-raspberry-pi?view=all
+
+        pypi.org/project/mpg123
+
+        github/20tab/mpg123-python/blob/master/examples
+
+    '''
     def __init__(self):
-
-        freq = 44100  # audio CD quality
-        bitsize = -16  # unsigned 16 bit
-        channels = 2  # 1 is mono, 2 is stereo
-        buffer = 2048  # number of samples
-        pygame.mixer.init(freq, bitsize, channels, buffer)
-
-        self.clock = pygame.time.Clock()
-
-        self.musicFileName = None
-        self.eventFileName = None
+        self.mp3 = None
+        self.rate = None
+        self.channels = None
+        self.encoding = None
+        self.frame_count = 0
         self.paused = False
-        self.labelTrack = None
-        self.currPos = None
-        self.isPlaying = False
-        
-        self.InternalOffsetTime = 0
+        self.time = None
 
-    def setVolume(self, value):
-        pygame.mixer.music.set_volume(value)
-
-    def loadMusic(self, musicFileName, eventFileName=None):
-        try:
-            pygame.mixer.music.load(musicFileName)
-        except pygame.error:
-            return
-
-        try:
-            if self.labelTrack:
-                # read eventFile
-                data = numpy.genfromtext(eventFileName, dtype=[('start', 'f',), ('start', 'S20')], delimiter='\t',
-                                         autostrip=True)
-                # get labels
-                self.labelTrack = set([x[2] for x in data])
-        except error:
-            return
-
-    def playMusic(self):
-        if self.paused:
-            pygame.mixer.music.unpause()
-        else:
-            if not pygame.mixer.music.get_busy():
-                pygame.mixer.music.play()
+    def load(self, filename):
+        self.mp3 = Mpg123('../Media/Music/This_Is_Halloween.mp3')
+        self.rate, self.channels, self.encoding = mp3.get_format()
+        self.out = Out123()
+        self.out.start(self.rate, self.channels, self.encoding)
+        self.frame_count = 0
         self.paused = False
+        self.time = None
 
-    def pauseMusic(self):
-        if pygame.mixer.music.get_busy():
-            pygame.mixer.music.pause()
-            self.paused = True
+    def pause(self):
+        self.paused = not self.paused
 
-    def stopMusic(self):
-        pygame.mixer.music.fadeout(1000)
-        pygame.mixer.music.stop()
-        self.paused = False
+    def play(self):
+        if not self.paused:
 
-    def monitorPlay(self):
-        if pygame.mixer.music.get_busy():
-            msTime = pygame.mixer.music.get_pos()
+        # need to loop cont here
+             for frame in mp3.iter_frames(out.start):
+                self.frame_count += 1
+                self.time = time_of_frame(self.rate, self.channels, len(frame), self.frame_count)
+                out.play(frame)
 
-            self.currPos = self.InternalOffsetTime + msTime
-            print str(self.currPos)
+    def stop(self):
+        pass
+    
 
-            # minutes = int(mstime / 60000)
-            # seconds = int(mstime / 1000 - minutes * 60)
-
-            # check for event
-            # -- send event msg to PatternEngine
-            # self.labelTrack
 
 
 class Audio(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading.Thread):
@@ -108,28 +86,13 @@ class Audio(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading
         self.putMsgHdw = qHdw.put
 
 
-        
-        #music = pygame.mixer_music
-        
-        #freq = 44100  # audio CD quality
-        #bitsize = -16  # unsigned 16 bit
-        #channels = 2  # 1 is mono, 2 is stereo
-        #buffer = 2048  # number of samples
-        #pygame.mixer.init(freq, bitsize, channels, buffer)
-        
-        #music = music.load('./Media/Audio/DS9.mp3')
-        
-        
-        # another audio idea
-        # https://github.com/MegaDoot/Music-Player/blob/master/App.py
-        # self.player = pyglet.media.Player()
-        
+       
         # initialize audio
         self.player = Player()
         
-        self.player.loadMusic('./Media/Audio/DS9.mp3')
-        self.player.playMusic()
-        self.player.monitorPlay()
+        self.player.load('./Media/Audio/DS9.mp3')
+        self.player.play()
+        self.player.elapsed()
         
         
         self.msg = None
@@ -156,27 +119,26 @@ class Audio(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading
 
                             # playMusic
                             if self.msg['event'] == 'play':
-                                self.player.playMusic()
+                                self.player.play()
 
                             # pauseMusic
                             elif self.msg['event'] == 'pause':
-                                self.player.pauseMusic()
+                                self.player.pause()
 
                             # stopMusic
                             elif self.msg['event'] == 'stop':
-                                self.player.stopMusic()
+                                self.player.stop()
 
                             # loadMusic
                             elif self.msg['event'] == 'load':
-                                self.player.loadMusic(self.msg['data'])
-
+                                self.player.load(self.msg['data'])
 
                             else:
                                 self.logger.error('Unknown message type')
 
                     # actively playing audio
                     if self.player.isPlaying:
-                        self.monitorPlay()
+                        self.elapsed()
 
                     else:
                         time.sleep(.05)
@@ -196,3 +158,62 @@ class Audio(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading
         # do cleanup
         self.done = True
         return
+
+
+
+def time_of_frame(rate, channels, frame_length, frame_count):
+    samples_per_sec = rate * channels
+    # division my 2 asmumes 16-bit encoding
+    samples_per_frame = frame_length / 2
+
+    frames_per_second = float(samples_per_sec / samples_per_frame)
+    time_sec = float(frame_count / frames_per_second)
+
+    return "{:02.0f}:{:06.3f}".format(
+        time_sec // 60,
+        time_sec % 60)
+        
+
+# test stuffs are here
+if __name__ == '__main__':
+
+    '''
+    import Queue
+    
+    qPat = Queue.Queue()
+    qAud = Queue.Queue()
+    qWeb = Queue.Queue()
+    config = {}
+
+    testAudio = Audio(qAud, qWeb, qPat, config)
+    testAudio.run()
+    '''
+    
+    mp3 = Mpg123('../Media/Music/This_Is_Halloween.mp3')
+    rate, channels, encoding = mp3.get_format()
+
+    out = Out123()
+    
+    frame_count = 0
+
+    #for frame in mp3.iter_frames(out.start):
+    for frame in mp3.iter_frames(out.start(rate, channels, encoding)):
+        frame_count += 1
+
+
+        time = time_of_frame(rate, channels, len(frame), frame_count)
+        ##print time
+               
+        out.play(frame)
+
+    print "DONE"
+    
+
+    
+
+
+
+
+
+    
+

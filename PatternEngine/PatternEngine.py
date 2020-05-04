@@ -12,7 +12,6 @@ import math
 import numpy
 import tween
 import datetime
-import fpstimer
 import image_to_numpy
 
 RUNNING = True
