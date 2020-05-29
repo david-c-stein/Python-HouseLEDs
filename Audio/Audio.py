@@ -17,7 +17,7 @@ except ImportError:
     class Global:
         __MULTIPROCESSING__ = False
 
-
+"""
 class Player(object):
     '''
         Audio on Raspberry PI
@@ -27,22 +27,35 @@ class Player(object):
         pypi.org/project/mpg123
 
         github/20tab/mpg123-python/blob/master/examples
-
     '''
     def __init__(self):
         self.mp3 = None
         self.rate = None
+        self.samples_per_sec = 0
         self.channels = None
         self.encoding = None
         self.frame_count = 0
         self.paused = False
         self.time = None
 
+    def elapsed(self, frame_length, frame_count):
+        # division my 2 asmumes 16-bit encoding
+        samples_per_frame = frame_length / 2
+
+        frames_per_second = float(self.samples_per_sec / samples_per_frame)
+        time_sec = float(frame_count / frames_per_second)
+
+        return time_sec
+
     def load(self, filename):
         self.mp3 = Mpg123('../Media/Music/This_Is_Halloween.mp3')
         self.rate, self.channels, self.encoding = mp3.get_format()
+
+        self.samples_per_sec = self.rate * self.channels
+
         self.out = Out123()
         self.out.start(self.rate, self.channels, self.encoding)
+
         self.frame_count = 0
         self.paused = False
         self.time = None
@@ -56,12 +69,136 @@ class Player(object):
         # need to loop cont here
              for frame in mp3.iter_frames(out.start):
                 self.frame_count += 1
-                self.time = time_of_frame(self.rate, self.channels, len(frame), self.frame_count)
+                self.time_sec = time_of_frame(len(frame), self.frame_count)
                 out.play(frame)
+
+                print "{:02.0f}:{:06.3f}".format(
+                    self.time_sec // 60,
+                    self.time_sec % 60)
 
     def stop(self):
         pass
-    
+"""
+
+
+
+
+class Player():
+    '''
+        Audio on Raspberry PI
+
+        learn.adafruit.com/usb-audio-cards-with-a-raspberry-pi?view=all
+
+        pypi.org/project/mpg123
+
+        github/20tab/mpg123-python/blob/master/examples
+
+        # ==================================================
+
+        Audacity to labelTrack eventing
+
+        https://manual.audacityteam.org/man/creating_and_selecting_labels.html
+
+    '''
+    def __init__(self):
+        self.mp3 = None
+        self.out = None
+        self.labelTrack = None
+
+        self.rate = None
+        self.samples_per_sec = 0
+        self.channels = None
+        self.encoding = None
+        self.paused = False
+        self.time = None
+        self.labelTrack = None
+
+        self.mp3FileName = None
+        self.eventFileName = None
+
+        self.send_q = Queue.Queue()
+        self.alive = True
+
+        try:
+            self.player_thread = threading.Thread(target.self._player)
+            self.player_thread.setDeamon(True)
+            self.player_thread.start()
+        except thread.error:
+            raise
+
+    def _player(self):
+        try:
+            frame_count = 0
+            frame = None
+            
+            while self.alive:
+                
+                cmd = self.send_q.get()
+
+                if self.stopped:
+                    frame_count = 0
+
+                if not self.paused:
+                    # play stuffs
+                    for frame in self.mp3.iter_frames(self.out.start):
+                        frame_count += 1
+                        self.time_sec = _time_of_frame(len(frame), frame_count)
+                        out.play(frame)
+
+                        # send out even data
+                        if labelTrack:
+                            pass
+
+                self.send_q.task_done()
+        except(KeyboardInterrupt, SystemExit):
+            self.alive = False
+            raise
+            
+        except Exception, err:
+            self.alive = False
+            raise        
+
+    def _time_of_frame(self, frame_length, frame_count):
+        # division my 2 asmumes 16-bit encoding
+        samples_per_frame = frame_length / 2
+        frames_per_second = float(self.samples_per_sec / samples_per_frame)
+        time_sec = float(frame_count / frames_per_second)
+        return time_sec
+
+    def elapsed(self):
+         return "{:02.0f}:{:06.3f}".format( self.time_sec // 60, self.time_sec % 60)
+
+    def load(self, mp3filename, evenfilename=None):
+        if mp3filename:
+            self.mp3FileName = filename
+        else:
+            self.mp3FileName = '../Media/Music/This_Is_Halloween.mp3'
+
+        if eventFileName:
+            self.eventFileName = eventFileName
+        else:
+            self.eventFileName = '../Media/Music/This_is_Halloween.event'
+            
+        self.mp3 = Mpg123(self.mp3FileName)
+        self.rate, self.channels, self.encoding = mp3.get_format()
+        self.samples_per_sec = self.rate * self.channels
+        self.out = Out123()
+        self.out.start(self.rate, self.channels, self.encoding)
+
+        if self.eventFileName:
+            # open label file generated by Audacity
+            data = numpy.genfromtext(self.eventFileName, dtype=[('start','f',),('start','S20')], delimiter='\t', autostrip=True)
+            # get labels
+            self.labelTrack = set([x[2] for x in data])
+
+    def pause(self):
+        self.paused = not self.paused
+
+    def play(self):
+        if not self.paused:
+
+    def stop(self):
+        pass
 
 
 
@@ -84,15 +221,18 @@ class Audio(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading
         self.getMsg = qAud
         self.putMsgWeb = qWeb.put
         self.putMsgHdw = qHdw.put
-
-
        
         # initialize audio
         self.player = Player()
-        
+        self.player.start()
+
+
+        ##### test code 
         self.player.load('./Media/Audio/DS9.mp3')
         self.player.play()
         self.player.elapsed()
+
+
         
         
         self.msg = None
@@ -160,6 +300,8 @@ class Audio(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading
         return
 
 
+# ==============================================================================
+
 
 def time_of_frame(rate, channels, frame_length, frame_count):
     samples_per_sec = rate * channels
@@ -188,6 +330,7 @@ if __name__ == '__main__':
     testAudio = Audio(qAud, qWeb, qPat, config)
     testAudio.run()
     '''
+
     
     mp3 = Mpg123('../Media/Music/This_Is_Halloween.mp3')
     rate, channels, encoding = mp3.get_format()
