@@ -18,67 +18,6 @@ except ImportError:
         __MULTIPROCESSING__ = False
 
 
-"""
-TEST CLASS
-
-class _mpg123(object):
-    def __init__(self):
-        self.mp3 = None
-        self.out = None
-        self.rate = None
-        self.samples_per_sec = 0
-        self.channels = None
-        self.encoding = None
-        self.frame_iter = None
-        self.frame_count = 0
-        self.pause = True
-        self.done = False        
-
-    def load(self, mp3filename):
-        self.mp3 = Mpg123(mp3filename)
-        self.rate, self.channels, self.encoding = self.mp3.get_format()
-        self.samples_per_sec = self.rate * self.channels
-
-        self.out = Out123()
-        self.out.start(self.rate, self.channels, self.encoding)
-
-        self.frame_iter = self.mp3.iter_frames(self.out.start(self.rate, self.channels, self.encoding))
-
-        self.frame_count = 0
-
-    def unload(self):
-        self.mp3 = None
-        self.out = None
-        self.rate = None
-        self.channels = None
-        self.encoding = None
-        self.frame_count = 0
-
-    def _time_of_frame(self, frame_length, frame_count):
-        # division my 2 asmumes 16-bit encoding
-        samples_per_frame = frame_length / 2
-        frames_per_second = float(self.samples_per_sec / samples_per_frame)
-        time_sec = float(frame_count / frames_per_second)
-        return time_sec
-
-    def play(self):
-        print('...playing...')
-        while(not self.done):
-            try:
-                self.frame_count += 1
-                frame = next(self.frame_iter)
-                time = self._time_of_frame(len(frame), self.frame_count)
-                print(str(time))
-                self.out.play(frame)
-            except StopIteration:
-                print('DONE')
-                self.unload()
-                self.done = True
-       
-"""
-
-
-
 '''
     Audio on Raspberry PI
     learn.adafruit.com/usb-audio-cards-with-a-raspberry-pi?view=all
@@ -280,7 +219,62 @@ class Audio(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading
 # ==============================================================================
 
 
-        
+
+"""
+TEST CLASS
+
+class _mpg123(object):
+    def __init__(self):
+        self.mp3 = None
+        self.out = None
+        self.rate = None
+        self.samples_per_sec = 0
+        self.channels = None
+        self.encoding = None
+        self.frame_iter = None
+        self.frame_count = 0
+        self.pause = True
+        self.done = False        
+
+    def load(self, mp3filename):
+        self.mp3 = Mpg123(mp3filename)
+        self.rate, self.channels, self.encoding = self.mp3.get_format()
+        self.samples_per_sec = self.rate * self.channels
+        self.out = Out123()
+        self.out.start(self.rate, self.channels, self.encoding)
+        self.frame_iter = self.mp3.iter_frames(self.out.start(self.rate, self.channels, self.encoding))
+        self.frame_count = 0
+
+    def unload(self):
+        self.mp3 = None
+        self.out = None
+        self.rate = None
+        self.channels = None
+        self.encoding = None
+        self.frame_count = 0
+
+    def _time_of_frame(self, frame_length, frame_count):
+        # division my 2 asmumes 16-bit encoding
+        samples_per_frame = frame_length / 2
+        frames_per_second = float(self.samples_per_sec / samples_per_frame)
+        time_sec = float(frame_count / frames_per_second)
+        return time_sec
+
+    def play(self):
+        print('...playing...')
+        while(not self.done):
+            try:
+                self.frame_count += 1
+                frame = next(self.frame_iter)
+                time = self._time_of_frame(len(frame), self.frame_count)
+                print(str(time))
+                self.out.play(frame)
+            except StopIteration:
+                print('DONE')
+                self.unload()
+                self.done = True
+       
+"""
 
 # test stuffs are here
 if __name__ == '__main__':
@@ -322,6 +316,7 @@ if __name__ == '__main__':
     print "DONE"
     '''
 
+
     '''
     # --- player class test ---
     player = _mpg123()
@@ -330,7 +325,7 @@ if __name__ == '__main__':
     '''
 
 
-    # threaded player class test
+    # --- threaded player class test ---
     import Queue
     qToPlayer = Queue.Queue()
     qFromPlayer = Queue.Queue()
