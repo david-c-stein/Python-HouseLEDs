@@ -216,17 +216,8 @@ class Audio(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading
         # initialize audio
         self.player = Player()
         self.player.start()
-
-
-        ##### test code 
-        self.player.load('../Media/Music/This_Is_Halloween.mp3')
-        self.player.play()
-        self.player.elapsed()
-
-      
-        
+       
         self.msg = None
-
         self.done = False
 
     def run(self):
@@ -265,10 +256,6 @@ class Audio(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading
 
                             else:
                                 self.logger.error('Unknown message type')
-
-                    # actively playing audio
-                    if self.player.isPlaying:
-                        self.elapsed()
 
                     else:
                         time.sleep(.05)
