@@ -233,94 +233,6 @@ class Audio(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading
 
 
 
-'''
-#TEST CLASS
-
-class _mpg123(object):
-    def __init__(self):
-        self.mp3 = None
-        self.out = None
-        self.rate = None
-        self.samples_per_sec = 0
-        self.channels = None
-        self.encoding = None
-        self.frame_iter = None
-        self.frame_count = 0
-        self.pause = True
-        self.done = False
-        self.labelTrack = None
-        self.labelIndex = None
-
-    def load(self, mp3filename, eventFilename=None):
-        self.mp3 = Mpg123(mp3filename)
-        self.rate, self.channels, self.encoding = self.mp3.get_format()
-        self.samples_per_sec = self.rate * self.channels
-        self.out = Out123()
-        self.out.start(self.rate, self.channels, self.encoding)
-        self.frame_iter = self.mp3.iter_frames(self.out.start(self.rate, self.channels, self.encoding))
-        self.frame_count = 0
-
-        if eventFilename:
-            # open label file created with Audacity and get labels  'start' flaot, 'stop' float
-            self.labelTrack = numpy.genfromtxt(eventFilename, dtype=[('start','f8',),('stop','f8'),('label','S20')], delimiter='\t', autostrip=True)
-            self.labelIndex = 0
-
-    def unload(self):
-        self.mp3 = None
-        self.out = None
-        self.rate = None
-        self.channels = None
-        self.encoding = None
-        self.frame_count = 0
-
-    def _time_of_frame(self, frame_length, frame_count):
-        # division my 2 asmumes 16-bit encoding
-        samples_per_frame = frame_length / 2
-        frames_per_second = float(self.samples_per_sec / samples_per_frame)
-        time_sec = float(frame_count / frames_per_second)
-        return time_sec
-
-    def _label_event_check(self, time):
-        try:
-            labeldata = self.labelTrack[self.labelIndex]
-
-            if labeldata[0] == labeldata[1]:
-                if labeldata[0] <= time:
-                    print(str(labeldata[0]) + ' : ' + labeldata[2])
-                    self.labelIndex += 1    
-            else:
-                if labeldata[0] > time:
-                    pass
-                elif labeldata[0] < time and labeldata[1] > time:
-                    print(labeldata[2])
-                elif labeldata[1] < time:
-                    self.labelIndex += 1
-                    
-        except IndexError:
-            self.labelTrack = None
-
-
-    def play(self):
-        print('...playing...')
-        while(not self.done):
-            try:
-                self.frame_count += 1
-                frame = next(self.frame_iter)
-                time = self._time_of_frame(len(frame), self.frame_count)
-
-                if self.labelTrack is not None:
-                    self._label_event_check(time)
-                
-                print(time)
-                self.out.play(frame)
-                
-            except StopIteration:
-                print('DONE')
-                self.unload()
-                self.done = True
-       
-'''
-
 # test stuffs are here
 if __name__ == '__main__':
 
@@ -331,13 +243,9 @@ if __name__ == '__main__':
         samples_per_sec = rate * channels
         # division my 2 asmumes 16-bit encoding
         samples_per_frame = frame_length / 2
-
         frames_per_second = float(samples_per_sec / samples_per_frame)
         time_sec = float(frame_count / frames_per_second)
-
-        return "{:02.0f}:{:06.3f}".format(
-            time_sec // 60,
-            time_sec % 60)
+        return "{:02.0f}:{:06.3f}".format(time_sec // 60, time_sec % 60)
 
     mp3 = Mpg123('../Media/Music/This_Is_Halloween.mp3')
     rate, channels, encoding = mp3.get_format()
@@ -360,15 +268,6 @@ if __name__ == '__main__':
     
     print "DONE"
     '''
-
-
-    '''
-    # --- player class test ---
-    player = _mpg123()
-    player.load('../Media/Music/This_Is_Halloween.mp3', '../Media/Music/This_Is_Halloween.labels')
-    player.play()
-    #'''
-
 
     # --- threaded player class test ---
     import Queue
