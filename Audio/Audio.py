@@ -279,48 +279,45 @@ if __name__ == '__main__':
     player = None
 
     while(running):
-        if (not qFromPlayer.empty()):
-            msg = qFromPlayer.get(timeout=0.2)
-            qFromPlayer.task_done()
-        
-            print str(msg)
-
-        if step == 0:
-            # initialize audio
-            print 'initializing player'
-            player = _mpg123_player_thread(qToPlayer, qFromPlayer)
-            player.start()
-            step += 1
+        try:
+            if (not qFromPlayer.empty()):
+                msg = qFromPlayer.get(timeout=0.2)
+                qFromPlayer.task_done()
             
-        elif step == 1:
-            print 'load'
-            qToPlayer.put({'event': 'load', 'data': {
-                                'mp3':'../Media/Music/This_Is_Halloween.mp3',
-                                'label':'../Media/Music/This_Is_Halloween.labels'}
-                         })
-            step += 1
+                print str(msg)
 
-        elif step == 2:
-            print 'play'
-            qToPlayer.put({'event': 'play'})
-            step += 1
-
-        elif step == 3:
-            if msg == 'DONE':
+            if step == 0:
+                # initialize audio
+                print 'initializing player'
+                player = _mpg123_player_thread(qToPlayer, qFromPlayer)
+                player.start()
                 step += 1
 
-        elif step == 4:
-            print 'stop'
+            elif step == 1:
+                print 'load'
+                qToPlayer.put({'event': 'load', 'data': {
+                                    'mp3':'../Media/Music/This_Is_Halloween.mp3',
+                                    'label':'../Media/Music/This_Is_Halloween.labels'}
+                             })
+                step += 1
+
+            elif step == 2:
+                print 'play'
+                qToPlayer.put({'event': 'play'})
+                step += 1
+
+            elif step == 3:
+                if msg == 'DONE':
+                    step += 1
+
+            else:
+                qToPlayer.put({'event':'stop'})
+                qToPlayer.join()
+                running = False
+
+            time.sleep(0.01)
+
+        except(KeyboardInterrupt, SystemExit):
             qToPlayer.put({'event':'stop'})
-            step += 1
-
-        elif step == 5:
-            print 'done'
-            qToPlayer.put({'event':'done'})
-            step += 1
-
-        else:
-            player.join()
-            running = False
-
-        time.sleep(0.01)
+            qToPlayer.join()
+            exit()
