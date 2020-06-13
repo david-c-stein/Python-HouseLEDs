@@ -8,6 +8,7 @@ import time
 from mpg123 import Mpg123, Out123
 
 import numpy
+import Queue
 
 try:
     import Global
@@ -138,6 +139,8 @@ class _mpg123_player_thread (threading.Thread):
                     if not self.pause:
                         self._play_mp3()
 
+                time.sleep(0.001)
+
             except(KeyboardInterrupt, SystemExit):
                 return
                 
@@ -163,12 +166,22 @@ class Audio(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading
         self.putMsgWeb = qWeb.put
         self.putMsgHdw = qHdw.put
        
+        self.qToPlayer = Queue.Queue()
+        self.qFromPlayer = Queue.Queue()
+
+        self.player = None
+        
         # initialize audio
-        self.player = Player()
+        self.player = _mpg123_player_thread(self.qToPlayer, self.qFromPlayer)
         self.player.start()
-       
+
         self.msg = None
         self.done = False
+
+    def __del__(self):
+        self.qToPlayer.put({'event':'stop'})
+        self.player.join()
+        self.done = True
 
     def run(self):
         # called on start() signal
@@ -190,24 +203,38 @@ class Audio(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading
 
                             # playMusic
                             if self.msg['event'] == 'play':
-                                self.player.play()
+                                self.qToPlayer.put({'event': 'play'})
 
                             # pauseMusic
                             elif self.msg['event'] == 'pause':
-                                self.player.pause()
+                                self.qToPlayer.put({'event':'pause'})
+                                self.qToPlayer.join()
 
                             # stopMusic
                             elif self.msg['event'] == 'stop':
-                                self.player.stop()
+                                self.qToPlayer.put({'event':'stop'})
+                                self.qToPlayer.join()
                                 self.done = True
 
                             # loadMusic
                             elif self.msg['event'] == 'load':
-                                self.player.load(self.msg['data'])
+                                #self.qToPlayer.put({'event': 'load', 'data': msg['data']})
+                                self.qToPlayer.put({'event': 'load', 'data': {
+                                    'mp3':'../Media/Music/This_Is_Halloween.mp3',
+                                    'label':'../Media/Music/This_Is_Halloween.labels'}
+                                })
 
                             else:
                                 self.logger.error('Unknown message type')
                                 self.done = True
+
+                    # --------------------------------
+                    # check for messages from _mpg123_player_thread
+                    if (not self.qFromPlayer.empty()):
+                        msg = self.qFromPlayer.get(timeout=0.2)
+                        self.qFromPlayer.task_done()
+                        print str(msg)
+
 
                     else:
                         time.sleep(.05)
@@ -215,7 +242,6 @@ class Audio(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading
                 except(KeyboardInterrupt, SystemExit):
                     self.logger.info("Interrupted HW process")
                     self.stop()
-                    exit()
 
                 except Exception as e:
                     self.logger.exception(e)
@@ -225,8 +251,10 @@ class Audio(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading
 
     def stop(self):
         # do cleanup
+        self.qToPlayer.put({'event':'stop'})
+        self.player.join()
         self.done = True
-        return
+
 
 
 # ==============================================================================
@@ -269,8 +297,8 @@ if __name__ == '__main__':
     print "DONE"
     '''
 
+    '''
     # --- threaded player class test ---
-    import Queue
     qToPlayer = Queue.Queue()
     qFromPlayer = Queue.Queue()
 
@@ -321,3 +349,5 @@ if __name__ == '__main__':
             qToPlayer.put({'event':'stop'})
             qToPlayer.join()
             exit()
+    '''
+    pass
