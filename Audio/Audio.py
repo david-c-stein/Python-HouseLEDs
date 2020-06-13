@@ -256,11 +256,6 @@ class Audio(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading
         self.done = True
 
 
-
-# ==============================================================================
-
-
-
 # test stuffs are here
 if __name__ == '__main__':
 

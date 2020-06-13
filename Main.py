@@ -38,8 +38,7 @@ starttime = datetime.datetime.now().strftime("%b %d %Y %H:%M:%S")
 
 __version__ = "0.0.0.1"
 
-__AUDIO__ = False
-
+__AUDIO__ = True
 
 
 class Sun(object):
@@ -62,7 +61,6 @@ class Sun(object):
 
 
 class myApp(object):
-
     def __init__(self):
 
         self.pAU = None  # Audio thread/process
@@ -82,12 +80,9 @@ class myApp(object):
 
         self.run = False
 
-
     def main(self, argv):
-
         logging.config.dictConfig(self.logConfig)
         self.logger = logging.getLogger(__name__)
-
         self.logger.info("Start time: " + starttime)
 
         # parse command line arguments
@@ -108,7 +103,7 @@ class myApp(object):
         self.running = True
         run = True
 
-        # start today 8a
+        # start today 7a
         startTime = datetime.time(hour=7, minute=0)
         # stop today 12+9:30p
         stopTime = datetime.time(hour=21, minute=30)
@@ -162,7 +157,6 @@ class myApp(object):
                 self.logger.exception(e)
                 self.stop()
                 run = False
-
 
     def initialize(self):
         try:
@@ -238,7 +232,6 @@ class myApp(object):
             raise(e)
         return
 
-
     def _delay(self):
         msCurr = time.time()
         msDelta = msCurr - self.msPrev
@@ -246,9 +239,6 @@ class myApp(object):
             time.sleep(self.msLoopDelta - msDelta)
         self.msPrev = msCurr
 
-
-
-    #-----------------------
     def initializeLEDs(self):
 
         try:
@@ -270,9 +260,7 @@ class myApp(object):
 
             else:
                 LED_STRIP = neopixel.ws.WS2811_STRIP_RGB
-
                 self.strip = neopixel.Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL, LED_STRIP)
-
                 self.strip.begin()
 
                 self.leds = self.strip.getPixels()
@@ -284,21 +272,25 @@ class myApp(object):
                 print("ALL: off")
                 self.strip.show()
                 time.sleep(5)
+
                 for i in range(self.ledCount):
                     self.strip.setPixelColorRGB(i,255,0,0,0)
                 print("ALL: red")
                 self.strip.show()
                 time.sleep(2)
+
                 for i in range(self.ledCount):
                     self.strip.setPixelColorRGB(i,0,255,0,0)
                 print("ALL: green")
                 self.strip.show()
                 time.sleep(2)
+
                 for i in range(self.ledCount):
                     self.strip.setPixelColorRGB(i,0,0,255,0)
                 print("ALL: blue")
                 self.strip.show()
                 time.sleep(2)
+
                 for i in range(self.ledCount):
                     self.strip.setPixelColorRGB(i,0,0,0,0)
                 print("ALL: off")
@@ -308,7 +300,6 @@ class myApp(object):
         except Exception as e:
             self.logger.exception(e)
 
-    #-----------------------
     def start(self, stopTime=None):
         try:
 
@@ -401,7 +392,6 @@ class myApp(object):
             self.stop()
             self.running = False
 
-    #-----------------------
     def stop(self):
         # stop processes
         if(self.pPE != None):
@@ -415,13 +405,11 @@ class myApp(object):
         self.pWS = None
         self.running = False
 
-    #-----------------------
     def usage(self):
         print("\n\n python " + __file__ + " -d <config>.cfg \n")
         self.stop()
         exit(1)
 
-    #-----------------------
     def initPaths(self, dirs):
 
         try:
