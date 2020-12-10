@@ -710,7 +710,7 @@ class pattern_TheaterChase(object):
             for i in range(0, self.sliceCnt):
                 self.leds[(i + self.idx)::self.sliceCnt] = self.arrayColor[i]
 
-            # need to fix idx for Reverse 
+            # need to fix idx for Reverse
             if self.idx < self.sliceCnt - 1:
                 self.idx += 1
             else:
@@ -1061,7 +1061,7 @@ class pattern_FromImage(object):
         self.idx = 0
 
     def step(self):
-    
+
         if self.delay > self.rate:
             if self.idx < self.length:
                 # copy image columns into led array
@@ -1314,171 +1314,6 @@ class transition_None(object):
 # =============================================================================
 
 
-class ghouls(object):
-
-    def __init__(self, leds, width):
-        self.leds = leds
-        self.ledCnt = len(leds)
-
-        colorBG = Color(0, 0, 0)
-        # colorBody = Color(99,38,0)
-        # colorEye = Color(163,67,7)
-        # colorPupil = Color(170,170,170)
-
-        colorBody = Color(64, 0, 0)
-        colorEye = Color(74, 0, 0)
-        colorPupil = (103, 0, 0)
-
-        # color pallet body
-        self.cLen = 100
-        self.colorPallet = list(tween.colorTween(tween.easeLinear, colorBG, colorBody, self.cLen, True, False))
-
-        # define body
-        self.width = width
-        side = int(self.width / 8)
-        mid = self.width - (side * 2) + (self.width % 2)
-        brightness = 99
-        inCir = list(tween.tween(tween.easeLinear, 0, brightness, side, True, False))
-        self.map = inCir[:] + ([brightness] * mid) + inCir[::-1]
-
-        self.bodyOn = True
-
-        # color pallet eye
-        self.eLen = 100
-        self.eyePallet = list(tween.colorTween(tween.easeLinear, colorBody, colorEye, self.eLen, True, False))
-
-        # define eye
-        self.eyeWidth = int(self.width / 4)
-        eyeSide = int(self.eyeWidth / 5)
-        eyeMid = self.eyeWidth - (eyeSide * 2) + (self.eyeWidth % 2)
-        eyeInCir = list(tween.tween(tween.easeLinear, 0, brightness, eyeSide, True, False))
-        self.eyeMap = eyeInCir[:] + ([brightness] * eyeMid) + eyeInCir[::-1]
-
-        # color pallet pupil
-        self.eLen = 100
-        self.pupilPallet = list(tween.colorTween(tween.easeLinear, colorEye, colorPupil, self.eLen, True, False))
-
-        # define pupil
-        self.pupilWidth = int(self.eyeWidth / 1.1)
-        pupilSide = int(self.pupilWidth / 3)
-        pupilMid = self.pupilWidth - (pupilSide * 2) + (self.pupilWidth % 2)
-        pupilInCir = list(tween.tween(tween.easeLinear, 0, brightness, pupilSide, True, False))
-        self.pupilMap = pupilInCir[:] + ([brightness] * pupilMid) + pupilInCir[::-1]
-
-        self.pupilOneOn = True
-        self.pupilOneAdjust = 0
-        self.pupilTwoOn = True
-        self.pupilTwoAdjust = 0
-
-        self.index = 0
-
-    def draw(self):
-
-        if self.bodyOn:
-            # draw body
-            for i in range(0, self.width - 1):
-                self.leds[i] = self.colorPallet[self.map[i]]
-
-        # draw eyes
-        eyeOneOffset = int(self.width / 3) - int(self.eyeWidth / 2)
-        eyeTwoOffset = int(2 * self.width / 3) - int(self.eyeWidth / 2)
-        for i in range(0, self.eyeWidth - 1):
-            self.leds[eyeOneOffset + i] = self.eyePallet[self.eyeMap[i]]
-            self.leds[eyeTwoOffset + i] = self.eyePallet[self.eyeMap[i]]
-
-        pupilOneOffset = 0
-
-        # draw pupils
-        if self.pupilOneOn:
-            pupilOneOffset = eyeOneOffset + int(self.eyeWidth / 2) - int(self.pupilWidth / 2) + self.pupilOneAdjust
-        if self.pupilTwoOn:
-            pupilTwoOffset = eyeTwoOffset + int(self.eyeWidth / 2) - int(self.pupilWidth / 2) + self.pupilTwoAdjust
-            for i in range(0, self.pupilWidth - 1):
-                if self.pupilOneOn:
-                    self.leds[pupilOneOffset + i] = self.pupilPallet[self.pupilMap[i]]
-                if self.pupilTwoOn:
-                    self.leds[pupilTwoOffset + i] = self.pupilPallet[self.pupilMap[i]]
-
-    def pupilMove(self, n):
-        self.pupilOneAdjust += n
-        self.pupilTwoAdjust += n
-
-    def SetPupilOneOff(self):
-        self.pupilOneOn = False
-
-    def SetPupilOneOn(self):
-        self.pupilOneOn = True
-
-    def SetPupilTwoOff(self):
-        self.pupilTwoOn = False
-
-    def SetPupilTwoOn(self):
-        self.pupilTwoOn = True
-
-    def step(self):
-        if self.index == 100:
-            self.pupilMove(1)
-        elif self.index == 102:
-            self.pupilMove(1)
-        elif self.index == 104:
-            self.pupilMove(1)
-
-        elif self.index == 110:
-            self.pupilMove(-1)
-        elif self.index == 115:
-            self.pupilMove(-1)
-        elif self.index == 118:
-            self.pupilMove(-1)
-        elif self.index == 120:
-            self.pupilMove(-1)
-        elif self.index == 124:
-            self.pupilMove(-1)
-        elif self.index == 126:
-            self.pupilMove(-1)
-
-        elif self.index == 150:
-            self.pupilMove(1)
-        elif self.index == 152:
-            self.pupilMove(1)
-        elif self.index == 154:
-            self.pupilMove(1)
-
-        elif self.index == 160:
-            self.SetPupilOneOff()
-            self.SetPupilTwoOff()
-        elif self.index == 175:
-            self.SetPupilOneOn()
-            self.SetPupilTwoOn()
-
-        elif self.index == 200:
-            self.SetPupilOneOff()
-            self.SetPupilTwoOff()
-        elif self.index == 213:
-            self.SetPupilOneOn()
-            self.SetPupilTwoOn()
-
-        elif self.index == 230:
-            self.pupilMove(1)
-        elif self.index == 232:
-            self.pupilMove(1)
-        elif self.index == 234:
-            self.pupilMove(1)
-
-        elif self.index == 240:
-            self.pupilMove(-1)
-        elif self.index == 245:
-            self.pupilMove(-1)
-        elif self.index == 248:
-            self.pupilMove(-1)
-
-        self.draw()
-
-        self.index += 1
-
-        if self.index > 250:
-            self.index = 0
-
-
 class pattern_Halloween(object):
 
     def __init__(self, leds, ledCnt, density=10, rate=10):
@@ -1487,7 +1322,7 @@ class pattern_Halloween(object):
         self.density = density
         self.rate = rate
 
-        self.bgColor = Color(80, 0, 160)  # dark purple
+        self.bgColor = Color(0xFF, 0x8C, 0x00)  # dark orange    # Color(80, 0, 160)  # dark purple
         self.bgDark = adjBrightness(self.bgColor, 5)
 
         # build out list of background colors
@@ -1504,7 +1339,6 @@ class pattern_Halloween(object):
 
         self.posStart = 300
         self.posEnd = 340
-        self.ghouls = ghouls(self.leds[self.posStart:self.posEnd], (self.posEnd - self.posStart))
 
         self.delay = self.rate
         self.j = 0
@@ -1544,9 +1378,6 @@ class pattern_Halloween(object):
             else:
                 self.j = 0
 
-            # foreground
-            self.ghouls.step()
-
             self.delay = 0
         else:
             self.delay += 1
@@ -1571,18 +1402,17 @@ class DisplayEngine(object):
 
     def tick(self):
         self.pRainbow.step()
-
-
-
         '''
 
-        self.colors = [Color(255, 0, 0),
-        
-                       Color(255, 255, 0),
-                       Color(0, 255, 0),
-                       Color(0, 255, 255),
-                       Color(0, 0, 255),
-                       Color(255, 0, 255)]
+
+
+
+        #self.colors = [Color(255, 0, 0),
+        #               Color(255, 255, 0),
+        #               Color(0, 255, 0),
+        #               Color(0, 255, 255),
+        #               Color(0, 0, 255),
+        #               Color(255, 0, 255)]
 
         # pattern list
         #self.patternOne = pattern_Solid(self.ledCount)
@@ -1597,11 +1427,12 @@ class DisplayEngine(object):
 
         # self.patternOne = pattern_TheaterChase(self.ledArrayOne, self.ledCount, Color(250, 250, 250), rate=4)
 
-        self.fromImage = pattern_FromImage(self.ledArray, self.ledCount, "./Media/Images/Image02.jpg", mode='RGB', rate=4)
+
+        # ---patters from images
+        self.fromImage = pattern_FromImage(self.ledArray, self.ledCount, "./Media/Images/Image3.jpg", mode='RGB', rate=4)
         #self.fromImage = pattern_FromImage(self.ledArray, self.ledCount, "./Media/Images/Image02.png", mode='RGBA', rate=4)
 
 
-        
         #self.patternOne = pattern_FromImage(self.ledArrayOne, self.ledCount, "./Media/Images/Image02.png", mode='RGBA', rate=4)
         #self.patternTwo = pattern_Rainbow(self.ledArrayTwo, self.ledCount)
 
@@ -1638,6 +1469,7 @@ class DisplayEngine(object):
         # self.tFadeWipe = transition_FadeWipe(self.ledArray, self.ledCount, self.ledArrayOne, self.ledArrayTwo)
         # self.tSparkleWipe = transition_SparkleWipe(self.ledArray, self.ledCount, self.ledArrayOne, self.ledArrayTwo)
 
+
         self.pattern = 0
 
         self.idx = 0
@@ -1645,8 +1477,9 @@ class DisplayEngine(object):
 
     def tick(self):
         # self.pRainbow.step()
-        
+
         self.fromImage.step()
+        #self.Halloween.step()
 
         # self.patternOne.step()
         # self.normalOne.step()

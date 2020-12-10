@@ -71,24 +71,23 @@ class WebServices(multiprocessing.Process if Global.__MULTIPROCESSING__ else thr
             # Get it all running
             tornado.ioloop.IOLoop.current().start()
 
-            # Web services stopping
-            http_server.stop()
-
         except(KeyboardInterrupt, SystemExit):
             self.logger.info("Interupted HW process")
-            self.stop()
-            exit()
 
         except Exception as e:
             self.logger.exception(e)
 
-    def stop(self):
-        ioloop = tornado.ioloop.IOLoop.instance()
-        ioloop.add_callback(ioloop.stop)
+        # Web services stopping
+        http_server.stop()
+        http_server.close_all_connections()
         self.logger.info("tornado http server stopped")
 
-    def get_ip_address(self, ifname):
+    def stop(self):
+        ioloop = tornado.ioloop.IOLoop.instance()
+        ioloop.make_current()
+        ioloop.clear_current()
 
+    def get_ip_address(self, ifname):
         # linux
         if sys.version_info[0] < 3:
 

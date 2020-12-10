@@ -21,6 +21,11 @@ try:
 except ImportError:
     __LEDS__ = False
 
+if Global.__EMULATE_HW__:
+    __LEDS__ = False
+
+__TIMER__ = False
+__AUDIO__ = True
 
 if Global.__MULTIPROCESSING__:
     import multiprocessing
@@ -32,13 +37,9 @@ else:
     else:
         from queue import Queue
 
+__version__ = "0.0.1"
 
 starttime = datetime.datetime.now().strftime("%b %d %Y %H:%M:%S")
-
-
-__version__ = "0.0.0.1"
-
-__AUDIO__ = True
 
 
 class Sun(object):
@@ -113,46 +114,52 @@ class myApp(object):
 
         while(run):
             try:
-                self.sun = Sun(self.lat, self.lon, self.alt)
-                sunrise = self.sun.nextSunrise()
-                sunset = self.sun.nextSunset()
+                if __TIMER__:
+                    self.sun = Sun(self.lat, self.lon, self.alt)
+                    sunrise = self.sun.nextSunrise()
+                    sunset = self.sun.nextSunset()
 
-                self.logger.info("Next sunrise: " + str(sunrise))
-                self.logger.info("Next sunset: " + str(sunset))
+                    self.logger.info("Next sunrise: " + str(sunrise))
+                    self.logger.info("Next sunset: " + str(sunset))
 
-                #showStartTime = sunrise
-                #showStartTime = sunset - datetime.timedelta(hours=0, minutes=30)
-                #shhowStopTime = sunset + datetime.timedelta(hours=2, minutes=0)
+                    #showStartTime = sunrise
+                    #showStartTime = sunset - datetime.timedelta(hours=0, minutes=30)
+                    #shhowStopTime = sunset + datetime.timedelta(hours=2, minutes=0)
 
-                self.logger.info("showStartTime: " + str(showStartTime))
-                self.logger.info("showStopTime: " + str(showStopTime))
+                    self.logger.info("showStartTime: " + str(showStartTime))
+                    self.logger.info("showStopTime: " + str(showStopTime))
 
-                now = datetime.datetime.now()
+                    now = datetime.datetime.now()
 
-                # this might be the next days sunrise if in running time
-                if showStartTime > now and now < showStopTime:
-                    showStartTime = now - datetime.timedelta(hours=2, minutes = 0)
+                    # this might be the next days sunrise if in running time
+                    if showStartTime > now and now < showStopTime:
+                        showStartTime = now - datetime.timedelta(hours=2, minutes = 0)
 
-                if showStartTime < now < showStopTime:
-                    # initialize and run
+                    if showStartTime < now < showStopTime:
+                        # initialize and run
+                        self.initialize()
+                        self.start(showStopTime)
+                        self.stop()
+
+                    elif showStopTime < now:
+                        # start and stop times for tomorrow
+                        showStartTime = datetime.datetime.combine(datetime.datetime.today() + datetime.timedelta(days=1), startTime)
+                        showStopTime = datetime.datetime.combine(datetime.datetime.today() + datetime.timedelta(days=1), stopTime)
+
+                        diff = showStartTime - now
+                        self.logger.info( "Sleeping : " + str(diff.seconds) + " seconds" )
+                        time.sleep(diff.seconds)
+                else:
                     self.initialize()
                     self.start(showStopTime)
                     self.stop()
-                    
-                elif showStopTime < now:
-                    # start and stop times for tomorrow
-                    showStartTime = datetime.datetime.combine(datetime.datetime.today() + datetime.timedelta(days=1), startTime)
-                    showStopTime = datetime.datetime.combine(datetime.datetime.today() + datetime.timedelta(days=1), stopTime)
-                                        
-                    diff = showStartTime - now
-                    self.logger.info( "Sleeping : " + str(diff.seconds) + " seconds" )
-                    time.sleep(diff.seconds)
+
 
             except(KeyboardInterrupt, SystemExit):
                 self.logger.info("Interrupted Main process")
                 self.stop()
                 run = False
-                
+
             except Exception as e:
                 self.logger.exception(e)
                 self.stop()
@@ -256,7 +263,7 @@ class myApp(object):
             self.sharedArray = numpy.ctypeslib.as_array(self.sharedArrayBase)
 
             if not __LEDS__:
-                self.logger.info("Running without real LEDS")
+                self.logger.info("---- Running without real LEDS ----")
 
             else:
                 LED_STRIP = neopixel.ws.WS2811_STRIP_RGB
@@ -271,7 +278,15 @@ class myApp(object):
                     self.strip.setPixelColorRGB(i,0,0,0,0)
                 print("ALL: off")
                 self.strip.show()
-                time.sleep(5)
+                time.sleep(1)
+                self.strip.show()
+                time.sleep(1)
+                self.strip.show()
+                time.sleep(1)
+                self.strip.show()
+                time.sleep(1)
+                self.strip.show()
+                time.sleep(1)
 
                 for i in range(self.ledCount):
                     self.strip.setPixelColorRGB(i,255,0,0,0)
@@ -322,8 +337,8 @@ class myApp(object):
 
             #--------------
             # https://learn.adafruit.com/led-tricks-gamma-correction
-            # Gamma8  This table remaps linear input values (e.g. 127 = half brightness) 
-            # to nonlinear gamma-corrected output values (numbers producing the desired 
+            # Gamma8  This table remaps linear input values (e.g. 127 = half brightness)
+            # to nonlinear gamma-corrected output values (numbers producing the desired
             # effect on the LED; e.g. 36 = half brightness)
 
             self.gamma8 = [
@@ -356,7 +371,7 @@ class myApp(object):
                             #self.strip.setPixelColorRGB(i, ledArray[i][0], ledArray[i][1], ledArray[i][2])
 
                         self.strip.show()
-                        
+
                     self._delay()
 
                     if stopTime:
