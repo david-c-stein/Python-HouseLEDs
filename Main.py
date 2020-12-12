@@ -188,31 +188,42 @@ class myApp(object):
             self.initPaths(dirs)
 
             # initialize queues
+            self.qApp = None
             self.qPat = None
             self.qAud = None
             self.qWeb = None
 
             if Global.__MULTIPROCESSING__:
+                self.qApp = multiprocessing.Queue()
                 self.qPat = multiprocessing.Queue()
                 self.qAud = multiprocessing.Queue()
                 self.qWeb = multiprocessing.Queue()
             else:
+                self.qApp = Queue()
                 self.qPat = Queue()
                 self.qAud = Queue()
                 self.qWeb = Queue()
+
+            # message queues
+            self.getMsg = self.qApp
+            self.putMsgAud = self.qAud.put
+            self.putMsgPat = self.qPat.put
+            self.putMsgWeb = self.qWeb.put
 
             self.initializeLEDs()
 
             # hardware configuration
             self.configHW = {
-                "HTTPPORT" : 8888,
-                "SOCKETIOPORT" : 8888,
+                #dcsdcs "HTTPPORT" : 8888,
+                #dcsdcs "SOCKETIOPORT" : 8888,
+                "HTTPPORT" : 8800,
+                "SOCKETIOPORT" : 8800,
             }
 
             # initialize patten engine process
             try:
                 from PatternEngine import PatternEngine
-                self.pPE = PatternEngine(self.qAud, self.qWeb, self.qPat, self.configHW, self.sharedArrayBase, self.ledCount)
+                self.pPE = PatternEngine(self.qApp, self.qAud, self.qWeb, self.qPat, self.configHW, self.sharedArrayBase, self.ledCount)
             except Exception as e:
                 self.logger.error( "PatternEngine Initialization Error: " + str(e) )
                 raise(e)
@@ -220,7 +231,7 @@ class myApp(object):
             # initialize web services process
             try:
                 from WebServices import WebServices
-                self.pWS = WebServices(self.qAud, self.qWeb, self.qPat, self.configHW, self.sharedArrayBase, self.ledCount)
+                self.pWS = WebServices(self.qApp, self.qAud, self.qWeb, self.qPat, self.configHW, self.sharedArrayBase, self.ledCount)
             except Exception as e:
                 self.logger.error( "Web Initialization Error: " + str(e) )
                 raise(e)
@@ -229,7 +240,7 @@ class myApp(object):
             if __AUDIO__:
                 try:
                     from Audio import Audio
-                    self.pAU = Audio(self.qAud, self.qWeb, self.qPat, self.configHW)
+                    self.pAU = Audio(self.qApp, self.qAud, self.qWeb, self.qPat, self.configHW)
                 except Exception as e:
                     self.logger.error( "Audio Initialization Error: " + str(e) )
                     raise(e)
@@ -239,12 +250,43 @@ class myApp(object):
             raise(e)
         return
 
+    def putAud(self, data):
+        # send data to audio
+        self.putMsgAud(['App', data])
+
+    def putPat(self, data):
+        # send data to pat
+        self.putMsgApp(['App', data])
+
+    def putWeb(self, data):
+        # send data to web
+        self.putMsgWeb(['App', data])
+
+    def putAll(self, data):
+        # send data back to audio and web
+        self.putMsgApp(['App', data])
+        self.putMsgAud(['App', data])
+        self.putMsgWeb(['App', data])
+
     def _delay(self):
         msCurr = time.time()
         msDelta = msCurr - self.msPrev
         if 0 < msDelta < self.msLoopDelta:
             time.sleep(self.msLoopDelta - msDelta)
         self.msPrev = msCurr
+
+    def allOff(self):
+        # turn off all the leds
+        for i in range(self.ledCount):
+            self.strip.setPixelColorRGB(i,0,0,0,0)
+        print("ALL: off")
+        self.strip.show()
+        time.sleep(0.25)
+        self.strip.show()
+        time.sleep(0.25)
+        self.strip.show()
+        time.sleep(0.25)
+        self.strip.show()
 
     def initializeLEDs(self):
 
@@ -274,19 +316,8 @@ class myApp(object):
                 self.strip.setBrightness(LED_BRIGHTNESS)
 
                 # quick led check
-                for i in range(self.ledCount):
-                    self.strip.setPixelColorRGB(i,0,0,0,0)
-                print("ALL: off")
-                self.strip.show()
-                time.sleep(1)
-                self.strip.show()
-                time.sleep(1)
-                self.strip.show()
-                time.sleep(1)
-                self.strip.show()
-                time.sleep(1)
-                self.strip.show()
-                time.sleep(1)
+                self.allOff()
+                time.sleep(5)
 
                 for i in range(self.ledCount):
                     self.strip.setPixelColorRGB(i,255,0,0,0)
@@ -306,10 +337,7 @@ class myApp(object):
                 self.strip.show()
                 time.sleep(2)
 
-                for i in range(self.ledCount):
-                    self.strip.setPixelColorRGB(i,0,0,0,0)
-                print("ALL: off")
-                self.strip.show()
+                self.allOff()
                 time.sleep(5)
 
         except Exception as e:
@@ -337,6 +365,7 @@ class myApp(object):
 
             #--------------
             # https://learn.adafruit.com/led-tricks-gamma-correction
+            #
             # Gamma8  This table remaps linear input values (e.g. 127 = half brightness)
             # to nonlinear gamma-corrected output values (numbers producing the desired
             # effect on the LED; e.g. 36 = half brightness)
@@ -364,6 +393,26 @@ class myApp(object):
 
             try:
                 while self.running:
+
+                    if not self.getMsg.empty():
+                        msg = self.getMsg.get()
+                        if not Global.__MULTIPROCESSING__:
+                            self.getMsg.task_done()
+
+                        if (msg != None):
+                            event = msg['event']
+                            data = msg['data']
+
+                            if (event == 'print'):
+                                self.logger.info("Print : " + str(data))
+
+                            else:
+                                self.logger.warn('Unknown event type')
+
+
+                            self.logger.debug( 'Web : ' + str(self.msg) )
+
+
                     if __LEDS__:
                         for i in range(self.ledCount):
                             # gamma correct brighness with rgb leds
@@ -374,21 +423,21 @@ class myApp(object):
 
                     self._delay()
 
+                    ''' refactor this
                     if stopTime:
                         if(check <= 0) :
                             check = self.FRAMES_PER_SECOND * 60
                             now = datetime.datetime.now()
                             if (now > stopTime):
-                                self.running = False
-                                self.logger.info("Stopping : stopTime reached")
+                                # Send message to PattenEngine
+                                self.putPat('None')
 
-                                # turn off all the leds
-                                for i in range(self.ledCount):
-                                    self.strip.setPixelColorRGB(i,0,0,0,0)
-                                print("ALL: off")
-                                self.strip.show()
+                                self.logger.info("Stopping : stopTime reached")
+                                self.allOff()
+
                         else:
                             check -= 1
+                    '''
 
             except(KeyboardInterrupt, SystemExit):
                 self.logger.info("Interupted PatternEngine process")
@@ -397,6 +446,7 @@ class myApp(object):
                 self.logger.exception(str(e))
 
             finally:
+                self.allOff()
                 self.stop()
                 self.running = False
 
@@ -404,6 +454,7 @@ class myApp(object):
             self.logger.exception(str(e))
 
         finally:
+            self.allOff()
             self.stop()
             self.running = False
 
@@ -421,7 +472,7 @@ class myApp(object):
         self.running = False
 
     def usage(self):
-        print("\n\n python " + __file__ + " -d <config>.cfg \n")
+        print("\n\n sudo python " + __file__ + "\n")
         self.stop()
         exit(1)
 

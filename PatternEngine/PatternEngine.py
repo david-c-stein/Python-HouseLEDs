@@ -1429,7 +1429,7 @@ class DisplayEngine(object):
 
 
         # ---patters from images
-        self.fromImage = pattern_FromImage(self.ledArray, self.ledCount, "./Media/Images/Image3.jpg", mode='RGB', rate=4)
+        self.fromImage = pattern_FromImage(self.ledArray, self.ledCount, "./Media/Images/Image09.jpg", mode='RGB', rate=4)
         #self.fromImage = pattern_FromImage(self.ledArray, self.ledCount, "./Media/Images/Image02.png", mode='RGBA', rate=4)
 
 
@@ -1521,7 +1521,7 @@ class DisplayEngine(object):
 
 class PatternEngine(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading.Thread):
 
-    def __init__(self, qAud, qWeb, qPat, config, sharedArrayBase, ledCount):
+    def __init__(self, qApp, qAud, qWeb, qPat, config, sharedArrayBase, ledCount):
         if Global.__MULTIPROCESSING__:
             # -- multiprocessing
             multiprocessing.Process.__init__(self)
@@ -1539,9 +1539,10 @@ class PatternEngine(multiprocessing.Process if Global.__MULTIPROCESSING__ else t
         self.ledArray = sharedArray.reshape((self.ledCount, 3))
 
         # message queues
+        self.getMsg = qPat
+        self.putMsgApp = qApp.put
         self.putMsgAud = qAud.put
         self.putMsgWeb = qWeb.put
-        self.getPat = qPat
 
         self.FRAMES_PER_SECOND = 60
         self.msLoopDelta = round(1.0/self.FRAMES_PER_SECOND, 4)
@@ -1552,14 +1553,23 @@ class PatternEngine(multiprocessing.Process if Global.__MULTIPROCESSING__ else t
 
         self.running = True
 
+    def putApp(self, data):
+        # send data to app
+        self.putMsgApp(['Pat', data])
+
     def putAud(self, data):
-        # send data back to web
-        self.putMsgWeb(['pat', data])
+        # send data to audio
+        self.putMsgAud(['Pat', data])
 
     def putWeb(self, data):
-        # send data back to web
-        self.putMsgWeb(['pat', data])
+        # send data to web
+        self.putMsgWeb(['Pat', data])
 
+    def putAll(self, data):
+        # send data back to audio and web
+        self.putMsgApp(['Pat', data])
+        self.putMsgAud(['Pat', data])
+        self.putMsgWeb(['Pat', data])
 
     def _delay(self):
         msCurr = time.time()
@@ -1567,7 +1577,6 @@ class PatternEngine(multiprocessing.Process if Global.__MULTIPROCESSING__ else t
         if 0 < msDelta < self.msLoopDelta:
             time.sleep(self.msLoopDelta - msDelta)
         self.msPrev = msCurr
-
 
     def run(self):
 
@@ -1578,11 +1587,27 @@ class PatternEngine(multiprocessing.Process if Global.__MULTIPROCESSING__ else t
             while self.running:
                 try:
                     # check for messages from the WebService
-                    if not self.getPat.empty():
-                        msg = self.getPat.get()
+                    if not self.getMsg.empty():
+                        msg = self.getMsg.get()
 
                         if not Global.__MULTIPROCESSING__:
                             self.getPat.task_done()
+
+                        if (msg != None):
+
+                            event = msg['event']
+                            data = msg['data']
+
+                            if (event == 'print'):
+                                self.logger.info("Print : " + str(data))
+
+                            else:
+                                self.logger.warn('Unknown event type')
+
+
+                            self.logger.debug( 'Pat : ' + str(self.msg) )
+
+
 
                     self.engine.tick()
                     self._delay()

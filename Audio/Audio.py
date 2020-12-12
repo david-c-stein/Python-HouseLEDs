@@ -149,7 +149,7 @@ class _mpg123_player_thread (threading.Thread):
 
 class Audio(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading.Thread):
 
-    def __init__(self, qAud, qHdw, qWeb, config):
+    def __init__(self, qApp, qAud, qWeb, qPat, config):
         if Global.__MULTIPROCESSING__:
             # -- multiprocessing
             multiprocessing.Process.__init__(self)
@@ -163,8 +163,9 @@ class Audio(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading
 
         # message queues
         self.getMsg = qAud
+        self.putMsgApp = qApp.put
         self.putMsgWeb = qWeb.put
-        self.putMsgHdw = qHdw.put
+        self.putMsgPat = qPat.put
        
         self.qToPlayer = Queue.Queue()
         self.qFromPlayer = Queue.Queue()
@@ -175,8 +176,25 @@ class Audio(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading
         self.player = _mpg123_player_thread(self.qToPlayer, self.qFromPlayer)
         self.player.start()
 
-        self.msg = None
         self.done = False
+
+    def putApp(self, data):
+        # send data to app
+        self.putMsgApp(['Aud', data])
+
+    def putPat(self, data):
+        # send data to patternengine
+        self.putMsgPat(['Aud', data])
+
+    def putWeb(self, data):
+        # send data to web
+        self.putMsgWeb(['Aud', data])
+
+    def putAll(self, data):
+        # send data back to audio and web
+        self.putMsgApp(['Aud', data])
+        self.putMsgAud(['Aud', data])
+        self.putMsgWeb(['Aud', data])
 
     def __del__(self):
         self.qToPlayer.put({'event':'stop'})
@@ -193,14 +211,28 @@ class Audio(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading
                     # --------------------------------
                     # check for messages from the WebService
                     if not self.getMsg.empty():
-                        self.msg = self.getMsg.get()
+                        msg = self.getMsg.get()
+
                         if not Global.__MULTIPROCESSING__:
                             self.getMsg.task_done()
 
-                        if self.msg is not None:
+                        if (msg != None):
 
-                            print(self.msg)
+                            event = msg['event']
+                            data = msg['data']
 
+                            if (event == 'print'):
+                                self.logger.info("Print : " + str(data))
+
+                            else:
+                                self.logger.warn('Unknown event type')
+
+
+                            self.logger.debug( 'Aud : ' + str(self.msg) )
+
+
+
+                            '''
                             # playMusic
                             if self.msg['event'] == 'play':
                                 self.qToPlayer.put({'event': 'play'})
@@ -227,12 +259,14 @@ class Audio(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading
                             else:
                                 self.logger.error('Unknown message type')
                                 self.done = True
+                            '''
 
                     # --------------------------------
                     # check for messages from _mpg123_player_thread
                     if (not self.qFromPlayer.empty()):
                         msg = self.qFromPlayer.get(timeout=0.2)
                         self.qFromPlayer.task_done()
+
                         print str(msg)
 
 

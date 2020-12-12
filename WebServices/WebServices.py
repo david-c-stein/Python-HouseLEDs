@@ -17,7 +17,7 @@ from subprocess import *
 
 class WebServices(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading.Thread):
 
-    def __init__(self, qAud, qHdw, qWeb, config, sharedArrayBase, ledCount):
+    def __init__(self, qApp, qAud, qWeb, qPat, config, sharedArrayBase, ledCount):
 
         if Global.__MULTIPROCESSING__:
             # -- multiprocessing
@@ -35,8 +35,9 @@ class WebServices(multiprocessing.Process if Global.__MULTIPROCESSING__ else thr
         self.ledCount = ledCount
 
         # message queues
+        self.qApp = qApp
         self.qAud = qAud
-        self.qHdw = qHdw
+        self.qPat = qPat
         self.qWeb = qWeb
 
         if os.name == "nt":
@@ -61,7 +62,7 @@ class WebServices(multiprocessing.Process if Global.__MULTIPROCESSING__ else thr
             # HTTP Web and WebSocket servers
             import HTTPHandler
             http_server = tornado.httpserver.HTTPServer(
-                HTTPHandler.HTTPHandler(self.qAud, self.qHdw, self.qWeb, self.config, self.sharedArrayBase,
+                HTTPHandler.HTTPHandler(self.qApp, self.qAud, self.qWeb, self.qPat, self.config, self.sharedArrayBase,
                                         self.ledCount))
             http_server.listen(self.config["HTTPPORT"])
 
@@ -84,8 +85,7 @@ class WebServices(multiprocessing.Process if Global.__MULTIPROCESSING__ else thr
 
     def stop(self):
         ioloop = tornado.ioloop.IOLoop.instance()
-        ioloop.make_current()
-        ioloop.clear_current()
+        ioloop.add_callback(ioloop.stop)
 
     def get_ip_address(self, ifname):
         # linux

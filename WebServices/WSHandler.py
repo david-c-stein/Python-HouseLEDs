@@ -24,8 +24,8 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 
     clients = {}
 
-   
-    def initialize(self, queAud, queHdw, queWeb, config, sharedArrayBase, ledCount):
+
+    def initialize(self, qApp, qAud, qWeb, qPat, config, sharedArrayBase, ledCount):
 
         self.config = config
 
@@ -37,12 +37,31 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         self.ledArray = sharedArray.reshape((self.ledCount, 3))
 
         # message queues
-        self.getMsg = queWeb
-        self.putMsgAud = queAud.put
-        self.putMsgHwd = queHdw.put
+        self.getMsg = qWeb
+        self.putMsgApp = qApp.put
+        self.putMsgAud = qAud.put
+        self.putMsgPat = qPat.put
 
         # setup message handler
         tornado.ioloop.IOLoop.instance().add_timeout(datetime.timedelta(milliseconds=100),self.msgHandler)
+
+    def putApp(self, data):
+        # send data to app
+        self.putMsgApp(['Web', data])
+
+    def putWeb(self, data):
+        # send data to aud
+        self.putMsgAud(['web', data])
+
+    def putPat(self, data):
+        # send data to patternengine
+        self.putMsgPat(['Web', data])
+
+    def putAll(self, data):
+        # send data back to all
+        self.putMsgApp(['Web', data])
+        self.putMsgAud(['Web', data])
+        self.putMsgPat(['Web', data])
 
 
     #=============================================================
@@ -55,21 +74,28 @@ class WSHandler(tornado.websocket.WebSocketHandler):
                 if not Global.__MULTIPROCESSING__:
                     self.getMsg.task_done()
 
-                self.logger.debug( 'Web : ' + str(self.msg) )
+                if (msg != None):
 
-                event = self.msg['event']
-                data = self.msg['data']
-                
-                # parse msg
+                    event = msg['event']
+                    data = msg['data']
+
+                    if (event == 'print'):
+                        self.logger.info("Print : " + str(data))
+
+                    else:
+                        self.logger.warn('Unknown event type')
+
+
+                    self.logger.debug( 'Web : ' + str(self.msg) )
 
 
 
             # ledinfo to webpage
-            self.sendAllData( ["ledData", self.ledArray.tolist()] )        
-                
+            self.sendAllData( ["ledData", self.ledArray.tolist()] )
+
             # continue message handler
             tornado.ioloop.IOLoop.instance().add_timeout(datetime.timedelta(milliseconds=100), self.msgHandler)
-            
+
         except Exception as e:
             self.logger.exception(str(e))
             raise
@@ -139,7 +165,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             if cls.clients[c]['id'] == id:
                 cls.clients[c]['object'].sendData(a);
 
-                
+
     #---------------------------------------------------
 
     def verifyLogin(self, msg):

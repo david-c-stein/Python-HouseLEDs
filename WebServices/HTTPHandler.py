@@ -19,7 +19,7 @@ import ErrorHandler
 # HTTP Web Service
 class HTTPHandler( tornado.web.Application ):
 
-    def __init__(self, queAud, queHdw, queWeb, config, sharedArrayBase, ledCount):        
+    def __init__(self, qApp, qAud, qWeb, qPat, config, sharedArrayBase, ledCount):
         
         self.config = config
 
@@ -27,9 +27,10 @@ class HTTPHandler( tornado.web.Application ):
         self.logger.info("Initializing " + __file__)
 
         # message queues
-        self.queAud = queAud
-        self.queHdw = queHdw
-        self.queWeb = queWeb
+        self.qApp = qApp
+        self.qAud = qAud
+        self.qWeb = qWeb
+        self.qPat = qPat
 
         try:
 
@@ -43,7 +44,7 @@ class HTTPHandler( tornado.web.Application ):
             self.handlers = [
                 # public
                 (r'/', IndexHandler.IndexHandler, dict(config=self.config, ledCount=self.ledCount)),
-                (r'/ws/(.*)', WSHandler.WSHandler, dict(queAud=self.queAud, queHdw=self.queHdw, queWeb=self.queWeb, config=self.config, sharedArrayBase=self.sharedArrayBase, ledCount=self.ledCount)),
+                (r'/ws/(.*)', WSHandler.WSHandler, dict(qApp=self.qApp, qAud=self.qAud, qWeb=self.qWeb, qPat=self.qPat, config=self.config, sharedArrayBase=self.sharedArrayBase, ledCount=self.ledCount)),
                 (r'/(favicon.ico)', tornado.web.StaticFileHandler, {"path" : 'static/favicon.ico'}),
                 (r'/(.*.js)', tornado.web.StaticFileHandler, {"path" : 'static/assets/js/.*.js'})
             ]
