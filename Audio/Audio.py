@@ -180,21 +180,21 @@ class Audio(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading
 
     def putApp(self, data):
         # send data to app
-        self.putMsgApp(['Aud', data])
+        self.putMsgApp({'src': 'Aud', 'data': data})
 
     def putPat(self, data):
         # send data to patternengine
-        self.putMsgPat(['Aud', data])
+        self.putMsgPat({'src': 'Aud', 'data': data})
 
     def putWeb(self, data):
         # send data to web
-        self.putMsgWeb(['Aud', data])
+        self.putMsgWeb({'src': 'Aud', 'data': data})
 
     def putAll(self, data):
         # send data back to audio and web
-        self.putMsgApp(['Aud', data])
-        self.putMsgAud(['Aud', data])
-        self.putMsgWeb(['Aud', data])
+        self.putMsgApp({'src': 'Aud', 'data': data})
+        self.putMsgAud({'src': 'Aud', 'data': data})
+        self.putMsgWeb({'src': 'Aud', 'data': data})
 
     def __del__(self):
         self.qToPlayer.put({'event':'stop'})
@@ -218,18 +218,10 @@ class Audio(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading
 
                         if (msg != None):
 
-                            event = msg['event']
+                            event = msg['src']
                             data = msg['data']
 
-                            if (event == 'print'):
-                                self.logger.info("Print : " + str(data))
-
-                            else:
-                                self.logger.warn('Unknown event type')
-
-
-                            self.logger.debug( 'Aud : ' + str(self.msg) )
-
+                            self.logger.info("Print : " + str(msg))
 
 
                             '''
@@ -268,7 +260,6 @@ class Audio(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading
                         self.qFromPlayer.task_done()
 
                         print str(msg)
-
 
                     else:
                         time.sleep(.05)

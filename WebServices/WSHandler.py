@@ -24,11 +24,8 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 
     clients = {}
 
-
     def initialize(self, qApp, qAud, qWeb, qPat, config, sharedArrayBase, ledCount):
-
         self.config = config
-
         self.logger = logging.getLogger(__name__)
         self.logger.info("Initializing " + __file__)
 
@@ -47,21 +44,21 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 
     def putApp(self, data):
         # send data to app
-        self.putMsgApp(['Web', data])
+        self.putMsgApp({'src': 'Web', 'data': data})
 
     def putWeb(self, data):
         # send data to aud
-        self.putMsgAud(['web', data])
+        self.putMsgAud({'src': 'Web', 'data': data})
 
     def putPat(self, data):
         # send data to patternengine
-        self.putMsgPat(['Web', data])
+        self.putMsgPat({'src': 'Web', 'data': data})
 
     def putAll(self, data):
         # send data back to all
-        self.putMsgApp(['Web', data])
-        self.putMsgAud(['Web', data])
-        self.putMsgPat(['Web', data])
+        self.putMsgApp({'src': 'Web', 'data': data})
+        self.putMsgAud({'src': 'Web', 'data': data})
+        self.putMsgPat({'src': 'Web', 'data': data})
 
 
     #=============================================================
@@ -76,18 +73,10 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 
                 if (msg != None):
 
-                    event = msg['event']
+                    event = msg['src']
                     data = msg['data']
 
-                    if (event == 'print'):
-                        self.logger.info("Print : " + str(data))
-
-                    else:
-                        self.logger.warn('Unknown event type')
-
-
-                    self.logger.debug( 'Web : ' + str(self.msg) )
-
+                    self.logger.info("Print : " + str(msg))
 
 
             # ledinfo to webpage
@@ -100,20 +89,27 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             self.logger.exception(str(e))
             raise
 
+    #=============================================================
+
+    def webMsgHandler(self, msg):
+
+        # pattern message
+        if (msg['event'] == 'pattern'):
+            self.logger.info('Client Id: ' + self.id + " IP address: " + self.ipAddr + " pattern: " + msg['data'])
+
+            # update all other clients with pattern
+            WSHandler.sendOthersData(self.id, [msg['event'], msg['data']])
 
     #=============================================================
 
     def check_origin(self, origin):
         return True
 
-
     def get_compression_options(self):
         # Non-None enables compression with default options.
         return {}
 
-
     def open(self, *args):
-
         # get client ip address
         x_real_ip = self.request.headers.get("X-Real-IP")
         self.ipAddr = x_real_ip or self.request.remote_ip
@@ -126,31 +122,23 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         WSHandler.clients[self.id] = {"id": self.id, "object": self}
         self.logger.info("Client added: id " + self.id + " IP addr: " + self.ipAddr)
 
-
     def on_close(self):
         if self.id in WSHandler.clients:
             del WSHandler.clients[self.id]
         self.logger.info("Client closed: id " + self.id + " IP address " + self.ipAddr)
 
-
     def on_message(self, message):
         self.logger.debug("Client : " + self.id + " msg: " + message)
-        self.msg = json_decode(message)
-
-        # login message
-        if (self.msg['event'] == 'login'):
-            if(self.verifyLogin(self.msg)):
-                self.logger.info('logined in ' + self.id + " IP address " + self.ipAddr)
+        msg = json_decode(message)
+        self.webMsgHandler(msg)
 
     def sendData(self, a):
         self.write_message( json_encode(a) )
-
 
     @classmethod
     def sendAllData(cls, a):
         for c in cls.clients:
             cls.clients[c]['object'].sendData(a);
-
 
     @classmethod
     def sendOthersData(cls, id, a):
@@ -158,19 +146,8 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             if cls.clients[c]['id'] != id:
                 cls.clients[c]['object'].sendData(a);
 
-
     @classmethod
     def sendOneData(cls, id, a):
         for c in cls.clients:
             if cls.clients[c]['id'] == id:
                 cls.clients[c]['object'].sendData(a);
-
-
-    #---------------------------------------------------
-
-    def verifyLogin(self, msg):
-        if((msg['data'][0] == Global.__USERNAME__) and (msg['data'][1] == Global.__PASSWORD__)):
-            return True
-        else:
-            return False
-

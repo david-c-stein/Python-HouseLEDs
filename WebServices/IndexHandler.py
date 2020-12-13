@@ -44,40 +44,19 @@ class IndexHandler(tornado.web.RequestHandler):
                     <div class='enableJS'>You need to enable javascript</div>
                 </noscript>
 
-            <!-- Main -->
-                <!-- Main content -->
                 <div id="main" class="container">
+                    <form>
+                        <select id="animselect">
+                             <option value="pattern">Pattern</option>
+                             <option value="stop">Stop</option>
+                        </select>
+                        <input type="checkbox" id="diffuser" value="0" /> <label for="diffuser">Diffuser</label>
+                    </form>
+                    <p id="output"></p>
 
-
-         <div class="ledstrip"></div>
-         
-         
-         <br />
-         <br />
-         <br />
-         <br />
-         <br />
-         <br />
-         
-         <form>
-           <select id="animselect">
-             <option value="generator">Generator</option>
-             <option value="stop">Stop</option>
-           </select>
-           <input type="checkbox" id="diffuser" value="0" /> <label for="diffuser">Diffuser</label>
-         </form>
-         <p id="output"></p>
-         <p>For more information:</p>
-
+                    <div class="ledstrip"></div>
 
                 </div>
-
-            <!-- Footer -->
-                <footer id="footer">
-                    <div class="copyright">
-                        David Stein : 2019
-                    </div>
-                </footer>
 
                 <!-- Start of websocket yummy goodness -->
 
@@ -200,13 +179,13 @@ class IndexHandler(tornado.web.RequestHandler):
                                 ;
                             })
 
-                            socket.bind('ledData', function(data) {
-                                //console.log(data)
-                                if (typeof driver.setLEDs === "function") {
-                                    var i
-                                    var size = data.length
+                            socket.bind('pattern', function(data) {
+                                changeAnimation(data)
+                            })
 
-                                    driver.setLEDs(data, size)
+                            socket.bind('ledData', function(data) {
+                                if (typeof driver.setLEDs === "function") {
+                                    driver.setLEDs(data, data.length)
                                 }
                             })
 
@@ -217,8 +196,7 @@ class IndexHandler(tornado.web.RequestHandler):
                     //===========================================================================
 
 
-                    var strip, animation;  // Global
-
+                    var strip, animation;
                     var container = $('.ledstrip')[0];
                     var light_count = """ + str(self.ledCount) + """;
                     strip = LEDstrip(container, light_count);
@@ -232,22 +210,28 @@ class IndexHandler(tornado.web.RequestHandler):
 
                     $('#animselect').change(function(e) {
                         var newanim = $(e.target).val();
-                        console.log('change to ' + newanim); 
+
+                        console.log('change to ' + newanim);
+                        sendMsg('pattern', newanim);
+
+                        changeAnimation(newanim)
+                    });
+                   
+                    function changeAnimation(newanim){
                         animation = cancelAnimationFrame(animation);
                         switch(newanim) {
-                            case 'generator':
-                                driver = new Generator(strip);
-                                break;
                             case 'stop':
                                 animation = cancelAnimationFrame(animation);
                                 return;
                                 break;
-                            } // /switch
-                        
+                            default:
+                                driver = new Generator(strip);
+                                break;
+                            }
                         driver.init();
                         animation = driver.animate();
-                    });
-                   
+                    }
+
 
                 </script>
             </body>

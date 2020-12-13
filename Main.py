@@ -79,6 +79,7 @@ class myApp(object):
         self.msLoopDelta = round(1.0/self.FRAMES_PER_SECOND, 4)
         self.msPrev = 0
 
+        self.strip = None
         self.run = False
 
     def main(self, argv):
@@ -252,21 +253,21 @@ class myApp(object):
 
     def putAud(self, data):
         # send data to audio
-        self.putMsgAud(['App', data])
+        self.putMsgAud({'src': 'App', 'data': data})
 
     def putPat(self, data):
         # send data to pat
-        self.putMsgApp(['App', data])
+        self.putMsgApp({'src': 'App', 'data': data})
 
     def putWeb(self, data):
         # send data to web
-        self.putMsgWeb(['App', data])
+        self.putMsgWeb({'src': 'App', 'data': data})
 
     def putAll(self, data):
         # send data back to audio and web
-        self.putMsgApp(['App', data])
-        self.putMsgAud(['App', data])
-        self.putMsgWeb(['App', data])
+        self.putMsgAud({'src': 'App', 'data': data})
+        self.putMsgPat({'src': 'App', 'data': data})
+        self.putMsgWeb({'src': 'App', 'data': data})
 
     def _delay(self):
         msCurr = time.time()
@@ -274,19 +275,6 @@ class myApp(object):
         if 0 < msDelta < self.msLoopDelta:
             time.sleep(self.msLoopDelta - msDelta)
         self.msPrev = msCurr
-
-    def allOff(self):
-        # turn off all the leds
-        for i in range(self.ledCount):
-            self.strip.setPixelColorRGB(i,0,0,0,0)
-        print("ALL: off")
-        self.strip.show()
-        time.sleep(0.25)
-        self.strip.show()
-        time.sleep(0.25)
-        self.strip.show()
-        time.sleep(0.25)
-        self.strip.show()
 
     def initializeLEDs(self):
 
@@ -316,7 +304,16 @@ class myApp(object):
                 self.strip.setBrightness(LED_BRIGHTNESS)
 
                 # quick led check
-                self.allOff()
+                for i in range(self.ledCount):
+                    self.strip.setPixelColorRGB(i,0,0,0,0)
+                print("ALL: off")
+                self.strip.show()
+                time.sleep(0.25)
+                self.strip.show()
+                time.sleep(0.25)
+                self.strip.show()
+                time.sleep(0.25)
+                self.strip.show()
                 time.sleep(5)
 
                 for i in range(self.ledCount):
@@ -337,8 +334,11 @@ class myApp(object):
                 self.strip.show()
                 time.sleep(2)
 
-                self.allOff()
-                time.sleep(5)
+                # turn off all the leds
+                for i in range(self.ledCount):
+                    self.strip.setPixelColorRGB(i,0,0,0,0)
+                print("ALL: off")
+                self.strip.show()
 
         except Exception as e:
             self.logger.exception(e)
@@ -391,6 +391,12 @@ class myApp(object):
 
             check = self.FRAMES_PER_SECOND * 60
 
+
+
+            self.putAll("Test Message")
+        
+
+
             try:
                 while self.running:
 
@@ -400,18 +406,10 @@ class myApp(object):
                             self.getMsg.task_done()
 
                         if (msg != None):
-                            event = msg['event']
+                            event = msg['src']
                             data = msg['data']
 
-                            if (event == 'print'):
-                                self.logger.info("Print : " + str(data))
-
-                            else:
-                                self.logger.warn('Unknown event type')
-
-
-                            self.logger.debug( 'Web : ' + str(self.msg) )
-
+                            self.logger.info("Print : " + str(msg))
 
                     if __LEDS__:
                         for i in range(self.ledCount):
@@ -433,7 +431,18 @@ class myApp(object):
                                 self.putPat('None')
 
                                 self.logger.info("Stopping : stopTime reached")
-                                self.allOff()
+        # turn off all the leds
+        for i in range(self.ledCount):
+            self.strip.setPixelColorRGB(i,0,0,0,0)
+        print("ALL: off")
+        self.strip.show()
+        time.sleep(0.25)
+        self.strip.show()
+        time.sleep(0.25)
+        self.strip.show()
+        time.sleep(0.25)
+        self.strip.show()
+
 
                         else:
                             check -= 1
@@ -446,7 +455,15 @@ class myApp(object):
                 self.logger.exception(str(e))
 
             finally:
-                self.allOff()
+                if self.strip is not None:
+                    # turn off all the leds
+                    for i in range(self.ledCount):
+                        self.strip.setPixelColorRGB(i,0,0,0,0)
+                    print("ALL: off")
+                    self.strip.show()
+                    self.strip.show()
+                    self.strip.show()
+
                 self.stop()
                 self.running = False
 
@@ -454,7 +471,15 @@ class myApp(object):
             self.logger.exception(str(e))
 
         finally:
-            self.allOff()
+            if self.strip is not None:
+                # turn off all the leds
+                for i in range(self.ledCount):
+                    self.strip.setPixelColorRGB(i,0,0,0,0)
+                print("ALL: off")
+                self.strip.show()
+                self.strip.show()
+                self.strip.show()
+
             self.stop()
             self.running = False
 

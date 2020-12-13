@@ -1555,21 +1555,21 @@ class PatternEngine(multiprocessing.Process if Global.__MULTIPROCESSING__ else t
 
     def putApp(self, data):
         # send data to app
-        self.putMsgApp(['Pat', data])
+        self.putMsgApp({'src': 'Pat', 'data': data})
 
     def putAud(self, data):
         # send data to audio
-        self.putMsgAud(['Pat', data])
+        self.putMsgAud({'src': 'Pat', 'data': data})
 
     def putWeb(self, data):
         # send data to web
-        self.putMsgWeb(['Pat', data])
+        self.putMsgWeb({'src': 'Pat', 'data': data})
 
     def putAll(self, data):
         # send data back to audio and web
-        self.putMsgApp(['Pat', data])
-        self.putMsgAud(['Pat', data])
-        self.putMsgWeb(['Pat', data])
+        self.putMsgApp({'src': 'Pat', 'data': data})
+        self.putMsgAud({'src': 'Pat', 'data': data})
+        self.putMsgWeb({'src': 'Pat', 'data': data})
 
     def _delay(self):
         msCurr = time.time()
@@ -1595,18 +1595,10 @@ class PatternEngine(multiprocessing.Process if Global.__MULTIPROCESSING__ else t
 
                         if (msg != None):
 
-                            event = msg['event']
+                            event = msg['src']
                             data = msg['data']
 
-                            if (event == 'print'):
-                                self.logger.info("Print : " + str(data))
-
-                            else:
-                                self.logger.warn('Unknown event type')
-
-
-                            self.logger.debug( 'Pat : ' + str(self.msg) )
-
+                            self.logger.info("Print : " + str(msg))
 
 
                     self.engine.tick()
