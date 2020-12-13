@@ -1584,6 +1584,19 @@ class PatternEngine(multiprocessing.Process if Global.__MULTIPROCESSING__ else t
         try:
             self.logger.info("Running PatternEngine process")
 
+
+
+
+
+            # send over the list of patterns
+            # ----hardcoded during development of web interface > replace with real list next  :)
+            self.putWeb({'addPattern': ['Derp', 'Random', 'Rainbow', 'Theatre Chase', 'Candy Cane', 'Bounce']})
+
+
+
+
+
+
             while self.running:
                 try:
                     # check for messages from the WebService

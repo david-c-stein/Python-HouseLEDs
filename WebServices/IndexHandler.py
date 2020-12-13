@@ -100,7 +100,7 @@ class IndexHandler(tornado.web.RequestHandler):
                             this.bind = function(event_name, callback) {
                                 callbacks[event_name] = callbacks[event_name] || [];
                                 callbacks[event_name].push(callback);
-                                return this;                       // chainable
+                                return this;      // chainable
                             };
 
                             this.unbind = function(event_name) {
@@ -180,21 +180,26 @@ class IndexHandler(tornado.web.RequestHandler):
                             })
 
                             socket.bind('pattern', function(data) {
-                                changeAnimation(data)
+                                changeAnimation(data);
+                            })
+
+                            socket.bind('selectPattern', function(data) {
+                                selectPattern(data);
+                            })
+
+                            socket.bind('addPattern', function(data) {
+                                addPattern(data);
                             })
 
                             socket.bind('ledData', function(data) {
                                 if (typeof driver.setLEDs === "function") {
-                                    driver.setLEDs(data, data.length)
+                                    driver.setLEDs(data, data.length);
                                 }
                             })
-
                         };
                     }
 
-
                     //===========================================================================
-
 
                     var strip, animation;
                     var container = $('.ledstrip')[0];
@@ -210,11 +215,8 @@ class IndexHandler(tornado.web.RequestHandler):
 
                     $('#animselect').change(function(e) {
                         var newanim = $(e.target).val();
-
                         console.log('change to ' + newanim);
                         sendMsg('pattern', newanim);
-
-                        changeAnimation(newanim)
                     });
                    
                     function changeAnimation(newanim){
@@ -227,11 +229,23 @@ class IndexHandler(tornado.web.RequestHandler):
                             default:
                                 driver = new Generator(strip);
                                 break;
-                            }
+                        }
                         driver.init();
                         animation = driver.animate();
                     }
 
+                    function addPattern(pattern){
+                        var option = document.createElement('option');
+                        option.text = pattern;
+                        option.value = pattern;
+                        var select = document.getElementById('animselect');
+                        select.appendChild(option);
+                    }
+
+                    function selectPattern(pattern){
+                        var element = document.getElementById('animselect');
+                        element.value = pattern;
+                    }
 
                 </script>
             </body>

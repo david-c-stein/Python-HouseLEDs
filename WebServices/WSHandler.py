@@ -23,7 +23,9 @@ def getClientID():
 class WSHandler(tornado.websocket.WebSocketHandler):
 
     clients = {}
-
+    patterns = []
+    selected_pattern = None
+    
     def initialize(self, qApp, qAud, qWeb, qPat, config, sharedArrayBase, ledCount):
         self.config = config
         self.logger = logging.getLogger(__name__)
@@ -60,11 +62,9 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         self.putMsgAud({'src': 'Web', 'data': data})
         self.putMsgPat({'src': 'Web', 'data': data})
 
-
     #=============================================================
 
     def msgHandler(self):
-
         try:
             if not self.getMsg.empty():
                 msg = self.getMsg.get()
@@ -72,15 +72,21 @@ class WSHandler(tornado.websocket.WebSocketHandler):
                     self.getMsg.task_done()
 
                 if (msg != None):
-
-                    event = msg['src']
+                    src = msg['src']
                     data = msg['data']
 
-                    self.logger.info("Print : " + str(msg))
+                    self.logger.debug("WS msg: " + str(msg))
 
+                    if 'Pat' == src:
+                        if data['addPattern'] is not None:
+                            for pattern in data['addPattern']:
+                                self.sendAllData(['addPattern', pattern])
+                                WSHandler.patterns.append(pattern)
 
+                            self.logger.info("msgHandler: " + str(WSHandler.patterns))
+   
             # ledinfo to webpage
-            self.sendAllData( ["ledData", self.ledArray.tolist()] )
+            self.sendAllData(['ledData', self.ledArray.tolist()])
 
             # continue message handler
             tornado.ioloop.IOLoop.instance().add_timeout(datetime.timedelta(milliseconds=100), self.msgHandler)
@@ -92,13 +98,12 @@ class WSHandler(tornado.websocket.WebSocketHandler):
     #=============================================================
 
     def webMsgHandler(self, msg):
-
         # pattern message
         if (msg['event'] == 'pattern'):
-            self.logger.info('Client Id: ' + self.id + " IP address: " + self.ipAddr + " pattern: " + msg['data'])
-
-            # update all other clients with pattern
-            WSHandler.sendOthersData(self.id, [msg['event'], msg['data']])
+            pattern = msg['data']
+            self.logger.info('Client Id: ' + self.id + " IP address: " + self.ipAddr + " pattern: " + pattern)
+            WSHandler.selected_pattern = pattern
+            WSHandler.sendOthersData(self.id, ['selectPattern', pattern])
 
     #=============================================================
 
@@ -116,11 +121,14 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 
         # Get unique client ID
         self.id = getClientID()
-
-        #self.id = self.get_argument("Id")
         self.stream.set_nodelay(True)
         WSHandler.clients[self.id] = {"id": self.id, "object": self}
         self.logger.info("Client added: id " + self.id + " IP addr: " + self.ipAddr)
+
+        # initialize pattern list in client
+        for pattern in WSHandler.patterns:
+            self.sendData(['addPattern', pattern])
+        self.sendData(['selectPattern', WSHandler.selected_pattern])
 
     def on_close(self):
         if self.id in WSHandler.clients:

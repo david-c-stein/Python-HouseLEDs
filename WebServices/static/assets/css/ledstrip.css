@@ -29,8 +29,7 @@ li {
   display: block;
   float: left;
   height: 16px;
-  border: 1px solid #888;
-  background-color: #444;
+  background-color: #000;
   clear: right;
   margin: 1em 1em;
 }
