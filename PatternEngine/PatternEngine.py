@@ -10,6 +10,7 @@ import logging.config
 import random
 import math
 import numpy
+from functools import partial
 import tween
 import datetime
 import image_to_numpy
@@ -399,22 +400,14 @@ def adjBrightness(color, brightness):
 # Patterns
 
 class pattern_Solid(object):
+
     def __init__(self, leds, ledCnt, color):
         self.ledCnt = ledCnt
-        self.leds = None
-        self._olor = color
-        self.delay = 0
-
-    @property
-    def color(self):
-        return self.color
-
-    @color.setter
-    def color(self, c):
-        self.color = c
+        self.leds = leds
+        self.color = color
 
     def step(self):
-        for i in range(self.ledCnt):
+        for i in range(0, self.ledCnt):
             self.leds[i] = self.color
 
 
@@ -615,7 +608,7 @@ class pattern_Rainbow(object):
 
 class pattern_Confetti(object):
 
-    def __init__(self, leds, ledCnt, color=None, bgcolor=None, count=None, rate=None):
+    def __init__(self, leds, ledCnt, color=None, bgcolor=None, count=None, rate=8):
         self.leds = leds
         self.ledCnt = ledCnt
         self.color = color
@@ -806,7 +799,7 @@ class pattern_Fire(object):
 
 # meteorRain(color,10, 64, true, 30);
 class pattern_MeteorRain(object):
-    def __init__(self, leds, ledCnt, color, meteorSize, meteorTrailDecay, meteorRandomDecay, rate=20):
+    def __init__(self, leds, ledCnt, color, meteorSize=10, meteorTrailDecay=5, meteorRandomDecay=True, rate=20):
         self.leds = leds
         self.ledCnt = ledCnt
         self.color = color
@@ -937,16 +930,16 @@ class pattern_Water(object):
         self.waterStepIncrement = .0015
         '''
 
-        self.m = 0.0075  # mass of each bead on the string
-        self.T = 40.0  # tension in the strings
-        self.a = 2.0  # distance between masses on the string
-        self.gamm = 0.0185  # damping constant
-        self.error = 0.1  # allows the termination to be imperfect
-        self.omega = 5.0  # angular freq of driving force
+        self.m = 0.0075                 # mass of each bead on the string
+        self.T = 40.0                   # tension in the strings
+        self.a = 2.0                    # distance between masses on the string
+        self.gamm = 0.0185              # damping constant
+        self.error = 0.1                # allows the termination to be imperfect
+        self.omega = 5.0                # angular freq of driving force
         self.AMin = -self.a / 100.0
         self.AMax = self.a / 100.0
-        self.A = self.AMax / 1.1  # amplitude of driving force
-        self.brightnessMax = 1000.0  # out of 1000
+        self.A = self.AMax / 1.1        # amplitude of driving force
+        self.brightnessMax = 1000.0     # out of 1000
 
         self.waterStepIncrement = .001
 
@@ -1343,12 +1336,6 @@ class pattern_Halloween(object):
         self.delay = self.rate
         self.j = 0
 
-    def setRate(self, rate):
-        self.rate = rate
-
-    def getRate(self):
-        return self.rate
-
     def step(self):
         if self.delay > self.rate:
 
@@ -1382,10 +1369,10 @@ class pattern_Halloween(object):
         else:
             self.delay += 1
 
-
 class DisplayEngine(object):
 
-    def __init__(self, ledArray, ledCount):
+    def __init__(self, logger, ledArray, ledCount):
+        self.logger = logger
         self.ledArray = ledArray
         self.ledCount = ledCount
 
@@ -1393,20 +1380,8 @@ class DisplayEngine(object):
         self.ledArrayOne = numpy.zeros(size, dtype=numpy.uint8)
         self.ledArrayTwo = numpy.zeros(size, dtype=numpy.uint8)
 
-        self.patternOne = None
-        self.patternTwo = None
-        self.transition = None
 
         '''
-        self.pRainbow = pattern_Rainbow(self.ledArray, self.ledCount, rate=2)
-
-    def tick(self):
-        self.pRainbow.step()
-        '''
-
-
-
-
         #self.colors = [Color(255, 0, 0),
         #               Color(255, 255, 0),
         #               Color(0, 255, 0),
@@ -1415,9 +1390,7 @@ class DisplayEngine(object):
         #               Color(255, 0, 255)]
 
         # pattern list
-        #self.patternOne = pattern_Solid(self.ledCount)
-        #self.patternOne.leds = self.ledArrayOne
-        #self.patternOne.color = Color(255, 0, 0)
+        self.patternOne = pattern_Solid(self.ledArrayOne, self.ledCount, Color(255, 0, 0))
 
         # self.patternTwo = pattern_Solid(self.ledCount)
         # self.patternTwo.leds = self.ledArrayTwo
@@ -1429,79 +1402,121 @@ class DisplayEngine(object):
 
 
         # ---patters from images
-        self.fromImage = pattern_FromImage(self.ledArray, self.ledCount, "./Media/Images/Image09.jpg", mode='RGB', rate=4)
+        #self.fromImage = pattern_FromImage(self.ledArray, self.ledCount, "./Media/Images/Image09.jpg", mode='RGB', rate=4)
         #self.fromImage = pattern_FromImage(self.ledArray, self.ledCount, "./Media/Images/Image02.png", mode='RGBA', rate=4)
 
 
         #self.patternOne = pattern_FromImage(self.ledArrayOne, self.ledCount, "./Media/Images/Image02.png", mode='RGBA', rate=4)
-        #self.patternTwo = pattern_Rainbow(self.ledArrayTwo, self.ledCount)
+        self.patternTwo = pattern_Rainbow(self.ledArrayTwo, self.ledCount)
 
-        # self.pJuggle = pattern_Juggle(self.ledArray, self.ledCount)
-        # self.pDrogen = pattern_RegenbogenDrogen(self.ledArray, self.ledCount)
-        # self.pFastPulse = pattern_fastpulse(self.ledArray, self.ledCount)
-        # self.pRainbow = pattern_Rainbow(self.ledArray, self.ledCount, rate=2)
+        #self.pJuggle = pattern_Juggle(self.ledArray, self.ledCount)
+        #self.pDrogen = pattern_RegenbogenDrogen(self.ledArray, self.ledCount)
+        #self.pFastPulse = pattern_fastpulse(self.ledArray, self.ledCount)
+        #self.pRainbow = pattern_Rainbow(self.ledArray, self.ledCount, rate=2)
 
-        # self.pConfetti = pattern_Confetti(self.ledArrayTwo, self.ledCount, 'rainbow')
+        # self.patternOne = pattern_Confetti(self.ledArrayOne, self.ledCount, 'rainbow')
         # self.pConfetti = pattern_Confetti(self.ledArray, self.ledCount, Color(255,255,255), Color(100,100,100), rate=3)
         # self.pConfetti = pattern_Confetti(self.ledArray, self.ledCount, Color(180,79,2), Color(160,73,0), rate=8)
 
         # self.patternTwo = pattern_TheaterChase(self.ledArrayTwo, self.ledCount, Color(250,250,250)) #self.colors)
         # self.pTheater = pattern_TheaterChase(self.ledArray, self.ledCount, Color(250,250,250))
 
-        # self.pFire = pattern_Fire(self.ledArray, self.ledCount, 55, 120, 15)
+        #self.pFire = pattern_Fire(self.ledArray, self.ledCount, 55, 120, 15)
         # self.patternTwo = pattern_Water(self.ledArrayTwo, self.ledCount)
-        # self.pMeteor = pattern_MeteorRain(self.ledArray, self.ledCount, Color(255,240,250), 10, 5, True, 15)
-        # self.pRunningLights = pattern_RunningLights(self.ledArray, self.ledCount, Color(200,200,200))
+        #self.pMeteor = pattern_MeteorRain(self.ledArray, self.ledCount, Color(255,240,250), 10, 5, True, 15)
+        #self.pRunningLights = pattern_RunningLights(self.ledArray, self.ledCount, Color(200,200,200))
 
         # self.Halloween = pattern_Halloween(self.ledArray, self.ledCount)
 
         # transitions
-        #self.normalOne = transition_None(self.ledArray, self.ledCount, self.ledArrayOne)
-        #self.normalTwo = transition_None(self.ledArray, self.ledCount, self.ledArrayTwo)
+        self.normalOne = transition_None(self.ledArray, self.ledCount, self.ledArrayOne)
+        self.normalTwo = transition_None(self.ledArray, self.ledCount, self.ledArrayTwo)
+
         # self.transition = transition_Wipe(self.ledArray, self.ledCount, self.+ledArrayTwo, self.ledArrayOne)
         # self.transition = transition_Fade(self.ledArray, self.ledCount, self.ledArrayOne, self.ledArrayTwo)
         # self.transition = transition_FadeWipe(self.ledArray, self.ledCount, self.ledArrayOne, self.ledArrayTwo, rate=40)
-        #self.transitionOne = transition_SparkleWipe(self.ledArray, self.ledCount, self.ledArrayOne, self.ledArrayTwo, rate=2)
-        #self.transitionTwo = transition_SparkleWipe(self.ledArray, self.ledCount, self.ledArrayTwo, self.ledArrayOne, rate=2)
+        self.transitionOne = transition_SparkleWipe(self.ledArray, self.ledCount, self.ledArrayOne, self.ledArrayTwo, rate=2)
+        self.transitionTwo = transition_SparkleWipe(self.ledArray, self.ledCount, self.ledArrayTwo, self.ledArrayOne, rate=2)
 
-        # self.pSolid = pattern_Solid(self.ledArrayOne, self.ledCount, Color(200, 200, 20))
-        # self.pRainbow = pattern_Rainbow(self.ledArrayTwo, self.ledCount)
-        # self.tFadeWipe = transition_FadeWipe(self.ledArray, self.ledCount, self.ledArrayOne, self.ledArrayTwo)
-        # self.tSparkleWipe = transition_SparkleWipe(self.ledArray, self.ledCount, self.ledArrayOne, self.ledArrayTwo)
+        #self.pSolid = pattern_Solid(self.ledArrayOne, self.ledCount, Color(200, 200, 20))
+        #self.pRainbow = pattern_Rainbow(self.ledArrayTwo, self.ledCount)
+
+        #self.tFadeWipe = transition_FadeWipe(self.ledArray, self.ledCount, self.ledArrayOne, self.ledArrayTwo)
+        #self.tSparkleWipe = transition_SparkleWipe(self.ledArray, self.ledCount, self.ledArrayOne, self.ledArrayTwo)
 
 
-        self.pattern = 0
+
+
+        self.patternOne = pattern_Solid(self.ledArrayOne, self.ledCount, Color(255, 0, 0))
+        self.patternTwo = pattern_Rainbow(self.ledArrayTwo, self.ledCount)
+        # transitions
+        self.normalOne = transition_None(self.ledArray, self.ledCount, self.ledArrayOne)
+        self.normalTwo = transition_None(self.ledArray, self.ledCount, self.ledArrayTwo)
+
+        # self.transition = transition_Wipe(self.ledArray, self.ledCount, self.+ledArrayTwo, self.ledArrayOne)
+        # self.transition = transition_Fade(self.ledArray, self.ledCount, self.ledArrayOne, self.ledArrayTwo)
+        # self.transition = transition_FadeWipe(self.ledArray, self.ledCount, self.ledArrayOne, self.ledArrayTwo, rate=40)
+        self.transitionOne = transition_FadeWipe(self.ledArray, self.ledCount, self.ledArrayOne, self.ledArrayTwo, rate=2)
+        self.transitionTwo = transition_Fade(self.ledArray, self.ledCount, self.ledArrayTwo, self.ledArrayOne, rate=20)
+        '''
+
+        self.patternList = [
+            partial(pattern_Solid, color=Color(255, 0, 0)),
+            partial(pattern_BouncingBalls, color=Color(0xFF,0x00, 0x00), ballCnt=1, rate=20),
+            partial(pattern_TheaterChase, color=Color(250, 250, 250), rate=4),
+            partial(pattern_FromImage, fileName="./Media/Images/Image09.jpg", mode='RGB', rate=4),
+            partial(pattern_Rainbow),
+            partial(pattern_Juggle),
+            partial(pattern_RegenbogenDrogen),
+            partial(pattern_fastpulse),
+            partial(pattern_Confetti, color='rainbow'),
+            partial(pattern_Confetti, color=Color(255,255,255), bgcolor=Color(100,100,100), rate=3),
+            partial(pattern_Confetti, color=Color(180,79,2), bgcolor=Color(160,73,0), rate=8),
+            partial(pattern_Fire, cooling=55, sparking=120, rate=15),
+            partial(pattern_Water),
+            partial(pattern_MeteorRain, color=Color(255,240,250), meteorSize=10, meteorTrailDecay=5, meteorRandomDecay=True, rate=15),
+            partial(pattern_RunningLights, color=Color(200,200,200))
+        ]
+
+        self.patternOne = self.patternList[0](self.ledArrayOne, self.ledCount)
+        self.patternTwo = self.patternList[4](self.ledArrayTwo, self.ledCount)
+
+        self.normalOne = transition_None(self.ledArray, self.ledCount, self.ledArrayOne)
+        self.normalTwo = transition_None(self.ledArray, self.ledCount, self.ledArrayTwo)
+
+        self.transitionOne = transition_FadeWipe(self.ledArray, self.ledCount, self.ledArrayTwo, self.ledArrayOne, rate=1)
+        self.transitionTwo = transition_FadeWipe(self.ledArray, self.ledCount, self.ledArrayOne, self.ledArrayTwo, rate=1)
+        self.transition = self.transitionOne
+
+        self.currentPattern = None
+        self.nextPattern = None
+        self.inTransition = False
 
         self.idx = 0
         self.state = 0
+        self.prevState = -1
 
     def tick(self):
-        # self.pRainbow.step()
 
-        self.fromImage.step()
-        #self.Halloween.step()
+        #self.fromImage.step()
 
-        # self.patternOne.step()
-        # self.normalOne.step()
-
-        '''
         if 0 == self.state:
-            if self.idx >= 200000:
+            if self.idx >= 1000:
                 self.state += 1
-                self.idx = 0
+                self.idx = -1
             self.patternOne.step()
             self.normalOne.step()
 
         elif 1 == self.state:
             self.patternOne.step()
             self.patternTwo.step()
-            if not self.transitionOne.step():
+            if not self.transition.step():
                 self.state += 1
 
         elif 2 == self.state:
-            if self.idx >= 2000:
+            if self.idx >= 1000:
                 self.state += 1
-                self.idx = 0
+                self.idx = -1
             self.patternTwo.step()
             self.normalTwo.step()
 
@@ -1513,10 +1528,21 @@ class DisplayEngine(object):
 
         elif 4 == self.state:
             self.state = 0
-            self.idx = 0
+            self.idx = -1
 
         self.idx += 1
-        '''
+
+
+        if self.state != self.prevState:
+            self.prevState = self.state
+            self.logger.info("  >>>>> Display State: " + str(self.state))
+
+    def getPatterns(self):
+        return ['Derp', 'Random', 'Rainbow', 'Theatre Chase', 'Candy Cane', 'Bounce']
+
+    def setPattern(self, name):
+        self.logger.info(" <<< Set Pattern: " + name)
+
 
 
 class PatternEngine(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading.Thread):
@@ -1544,12 +1570,12 @@ class PatternEngine(multiprocessing.Process if Global.__MULTIPROCESSING__ else t
         self.putMsgAud = qAud.put
         self.putMsgWeb = qWeb.put
 
-        self.FRAMES_PER_SECOND = 60
+        self.FRAMES_PER_SECOND = 120
         self.msLoopDelta = round(1.0/self.FRAMES_PER_SECOND, 4)
         self.msPrev = 0
 
         # display engine
-        self.engine = DisplayEngine(self.ledArray, self.ledCount)
+        self.engine = DisplayEngine(self.logger, self.ledArray, self.ledCount)
 
         self.running = True
 
@@ -1584,18 +1610,8 @@ class PatternEngine(multiprocessing.Process if Global.__MULTIPROCESSING__ else t
         try:
             self.logger.info("Running PatternEngine process")
 
-
-
-
-
             # send over the list of patterns
-            # ----hardcoded during development of web interface > replace with real list next  :)
-            self.putWeb({'addPattern': ['Derp', 'Random', 'Rainbow', 'Theatre Chase', 'Candy Cane', 'Bounce']})
-
-
-
-
-
+            self.putWeb({'addPattern': self.engine.getPatterns()})
 
             while self.running:
                 try:
@@ -1608,11 +1624,15 @@ class PatternEngine(multiprocessing.Process if Global.__MULTIPROCESSING__ else t
 
                         if (msg != None):
 
-                            event = msg['src']
+                            src = msg['src']
                             data = msg['data']
 
-                            self.logger.info("Print : " + str(msg))
+                            self.logger.info("PatternEngine : " + str(msg))
 
+                            # {'src': 'Web', 'data': ['selectPattern', u'Bounce']}
+                            if src == 'Web':
+                                if data[0] == 'selectPattern':
+                                    self.engine.setPattern(data[1])
 
                     self.engine.tick()
                     self._delay()

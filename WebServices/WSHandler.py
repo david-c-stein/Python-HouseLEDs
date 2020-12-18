@@ -98,12 +98,14 @@ class WSHandler(tornado.websocket.WebSocketHandler):
     #=============================================================
 
     def webMsgHandler(self, msg):
+
         # pattern message
         if (msg['event'] == 'pattern'):
             pattern = msg['data']
             self.logger.info('Client Id: ' + self.id + " IP address: " + self.ipAddr + " pattern: " + pattern)
             WSHandler.selected_pattern = pattern
             WSHandler.sendOthersData(self.id, ['selectPattern', pattern])
+            self.putPat(['selectPattern', pattern])
 
     #=============================================================
 
