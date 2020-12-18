@@ -1462,21 +1462,26 @@ class DisplayEngine(object):
 
         self.patternList = [
             partial(pattern_Solid, color=Color(255, 0, 0)),
-            partial(pattern_BouncingBalls, color=Color(0xFF,0x00, 0x00), ballCnt=1, rate=20),
-            partial(pattern_TheaterChase, color=Color(250, 250, 250), rate=4),
+            #partial(pattern_BouncingBalls, color=Color(0xFF,0x00, 0x00), ballCnt=1, rate=20),
+            #partial(pattern_TheaterChase, color=Color(250, 250, 250), rate=4),
             partial(pattern_FromImage, fileName="./Media/Images/Image09.jpg", mode='RGB', rate=4),
             partial(pattern_Rainbow),
-            partial(pattern_Juggle),
-            partial(pattern_RegenbogenDrogen),
-            partial(pattern_fastpulse),
+            #partial(pattern_Juggle),
+            #partial(pattern_RegenbogenDrogen),
+            #partial(pattern_fastpulse),
             partial(pattern_Confetti, color='rainbow'),
             partial(pattern_Confetti, color=Color(255,255,255), bgcolor=Color(100,100,100), rate=3),
             partial(pattern_Confetti, color=Color(180,79,2), bgcolor=Color(160,73,0), rate=8),
-            partial(pattern_Fire, cooling=55, sparking=120, rate=15),
-            partial(pattern_Water),
-            partial(pattern_MeteorRain, color=Color(255,240,250), meteorSize=10, meteorTrailDecay=5, meteorRandomDecay=True, rate=15),
-            partial(pattern_RunningLights, color=Color(200,200,200))
+            #partial(pattern_Fire, cooling=55, sparking=120, rate=15),
+            #partial(pattern_Water),
+            #partial(pattern_MeteorRain, color=Color(255,240,250), meteorSize=10, meteorTrailDecay=5, meteorRandomDecay=True, rate=15),
+            #partial(pattern_RunningLights, color=Color(200,200,200))
         ]
+
+        self.patternLen = len(self.patternList)
+
+        self.indexOne = 0
+        self.indexTwo = 4
 
         self.patternOne = self.patternList[0](self.ledArrayOne, self.ledCount)
         self.patternTwo = self.patternList[4](self.ledArrayTwo, self.ledCount)
@@ -1488,45 +1493,51 @@ class DisplayEngine(object):
         self.transitionTwo = transition_FadeWipe(self.ledArray, self.ledCount, self.ledArrayOne, self.ledArrayTwo, rate=1)
         self.transition = self.transitionOne
 
-        self.currentPattern = None
-        self.nextPattern = None
-        self.inTransition = False
-
         self.idx = 0
         self.state = 0
         self.prevState = -1
 
     def tick(self):
 
-        #self.fromImage.step()
-
         if 0 == self.state:
+            self.patternOne = self.patternList[self.indexOne](self.ledArrayOne, self.ledCount)
+            self.indexOne += 1
+            self.indexOne %= self.patternLen
+            self.state += 1
+
+        elif 1 == self.state:
             if self.idx >= 1000:
                 self.state += 1
                 self.idx = -1
             self.patternOne.step()
             self.normalOne.step()
 
-        elif 1 == self.state:
+        elif 2 == self.state:
+            self.patternTwo = self.patternList[self.indexTwo](self.ledArrayTwo, self.ledCount)
+            self.indexTwo += 1
+            self.indexTwo %= self.patternLen
+            self.state += 1
+
+        elif 3 == self.state:
             self.patternOne.step()
             self.patternTwo.step()
             if not self.transition.step():
                 self.state += 1
 
-        elif 2 == self.state:
+        elif 4 == self.state:
             if self.idx >= 1000:
                 self.state += 1
                 self.idx = -1
             self.patternTwo.step()
             self.normalTwo.step()
 
-        elif 3 == self.state:
+        elif 5 == self.state:
             self.patternOne.step()
             self.patternTwo.step()
             if not self.transitionTwo.step():
                 self.state += 1
 
-        elif 4 == self.state:
+        elif 6 == self.state:
             self.state = 0
             self.idx = -1
 
