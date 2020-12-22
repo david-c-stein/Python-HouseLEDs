@@ -656,12 +656,12 @@ class pattern_Confetti(object):
 
 class pattern_TheaterChase(object):
 
-    def __init__(self, leds, ledCnt, colors, colorBG=None, direction=FORWARD, width=5, rate=40):
+    def __init__(self, leds, ledCnt, color, colorBG=None, direction=FORWARD, width=5, rate=40):
         if colorBG is None:
             colorBG = Color(0, 0, 0)
         self.leds = leds
         self.ledCnt = ledCnt
-        self.colors = colors
+        self.color = color
         self.colorBG = colorBG
         self.direction = direction
         self.width = width
@@ -677,19 +677,19 @@ class pattern_TheaterChase(object):
 
         colorList = list(tween.tween(tween.easeInOutCirc, cStart, cEnd, self.width, True, False))
 
-        # first check to see if this is a list of colors
-        if type(self.colors[0]) == list:
-            for c in self.colors:
+        # first check to see if this is a list of color
+        if type(self.color[0]) == list:
+            for c in self.color:
                 for i in colorList:
                     self.arrayColor.append(blendColor(c, self.colorBG, bound8(i)))
 
         # or just a color
-        elif type(self.colors) == list:
+        elif type(self.color) == list:
             for i in colorList:
-                self.arrayColor.append(blendColor(self.colors, self.colorBG, bound8(i)))
+                self.arrayColor.append(blendColor(self.color, self.colorBG, bound8(i)))
 
         else:
-            print("Unknown colors")
+            print("Unknown color")
 
         self.sliceCnt = len(self.arrayColor)
 
@@ -733,8 +733,9 @@ class pattern_RunningLights(object):
                 self.position = 0
 
             for i in range(0, self.ledCnt):
-                s = ((math.sin(i + self.position) * 127 + 128) / 255)
-                self.leds[i] = Color(bound8(int(s * self.color[0])), bound8(int(s * self.color[1])),
+                s = (((math.sin(i/2 + self.position) * 127) + 128) / 255)
+                self.leds[i] = Color(bound8(int(s * self.color[0])),
+                                     bound8(int(s * self.color[1])),
                                      bound8(int(s * self.color[2])))
 
             self.delay = 0
@@ -1139,14 +1140,11 @@ class transition_Fade(object):
                     self.leds[j] = blendColor(self.ledsOne[j], self.ledsTwo[j], self.fade)
 
             self.fade += 1
-            if self.fade >= 255:
-                self.fade = 0
-
             self.delay = 0
         else:
             self.delay += 1
 
-        if self.fade < 255:
+        if self.fade <= 254:
             return True
         else:
             return False
@@ -1427,71 +1425,43 @@ class DisplayEngine(object):
         #self.pRunningLights = pattern_RunningLights(self.ledArray, self.ledCount, Color(200,200,200))
 
         # self.Halloween = pattern_Halloween(self.ledArray, self.ledCount)
-
-        # transitions
-        self.normalOne = transition_None(self.ledArray, self.ledCount, self.ledArrayOne)
-        self.normalTwo = transition_None(self.ledArray, self.ledCount, self.ledArrayTwo)
-
-        # self.transition = transition_Wipe(self.ledArray, self.ledCount, self.+ledArrayTwo, self.ledArrayOne)
-        # self.transition = transition_Fade(self.ledArray, self.ledCount, self.ledArrayOne, self.ledArrayTwo)
-        # self.transition = transition_FadeWipe(self.ledArray, self.ledCount, self.ledArrayOne, self.ledArrayTwo, rate=40)
-        self.transitionOne = transition_SparkleWipe(self.ledArray, self.ledCount, self.ledArrayOne, self.ledArrayTwo, rate=2)
-        self.transitionTwo = transition_SparkleWipe(self.ledArray, self.ledCount, self.ledArrayTwo, self.ledArrayOne, rate=2)
-
-        #self.pSolid = pattern_Solid(self.ledArrayOne, self.ledCount, Color(200, 200, 20))
-        #self.pRainbow = pattern_Rainbow(self.ledArrayTwo, self.ledCount)
-
-        #self.tFadeWipe = transition_FadeWipe(self.ledArray, self.ledCount, self.ledArrayOne, self.ledArrayTwo)
-        #self.tSparkleWipe = transition_SparkleWipe(self.ledArray, self.ledCount, self.ledArrayOne, self.ledArrayTwo)
-
-
-
-
-        self.patternOne = pattern_Solid(self.ledArrayOne, self.ledCount, Color(255, 0, 0))
-        self.patternTwo = pattern_Rainbow(self.ledArrayTwo, self.ledCount)
-        # transitions
-        self.normalOne = transition_None(self.ledArray, self.ledCount, self.ledArrayOne)
-        self.normalTwo = transition_None(self.ledArray, self.ledCount, self.ledArrayTwo)
-
-        # self.transition = transition_Wipe(self.ledArray, self.ledCount, self.+ledArrayTwo, self.ledArrayOne)
-        # self.transition = transition_Fade(self.ledArray, self.ledCount, self.ledArrayOne, self.ledArrayTwo)
-        # self.transition = transition_FadeWipe(self.ledArray, self.ledCount, self.ledArrayOne, self.ledArrayTwo, rate=40)
-        self.transitionOne = transition_FadeWipe(self.ledArray, self.ledCount, self.ledArrayOne, self.ledArrayTwo, rate=2)
-        self.transitionTwo = transition_Fade(self.ledArray, self.ledCount, self.ledArrayTwo, self.ledArrayOne, rate=20)
         '''
 
         self.patternList = [
             partial(pattern_Solid, color=Color(255, 0, 0)),
+            partial(pattern_Solid, color=Color(255, 255, 0)),
+            partial(pattern_Solid, color=Color(0, 255, 0)),
+            partial(pattern_Solid, color=Color(0, 255, 255)),
+            partial(pattern_Solid, color=Color(0, 0, 255)),
+            partial(pattern_Solid, color=Color(150, 150, 150)),
+            partial(pattern_RunningLights, color=Color(200,200,200), rate=8),
+            partial(pattern_TheaterChase, color=Color(250, 250, 250), rate=6),
             #partial(pattern_BouncingBalls, color=Color(0xFF,0x00, 0x00), ballCnt=1, rate=20),
-            #partial(pattern_TheaterChase, color=Color(250, 250, 250), rate=4),
             partial(pattern_FromImage, fileName="./Media/Images/Image09.jpg", mode='RGB', rate=4),
             partial(pattern_Rainbow),
             #partial(pattern_Juggle),
             #partial(pattern_RegenbogenDrogen),
             #partial(pattern_fastpulse),
-            partial(pattern_Confetti, color='rainbow'),
-            partial(pattern_Confetti, color=Color(255,255,255), bgcolor=Color(100,100,100), rate=3),
-            partial(pattern_Confetti, color=Color(180,79,2), bgcolor=Color(160,73,0), rate=8),
+            partial(pattern_Confetti, color='rainbow', rate=1),
+            partial(pattern_Confetti, color=Color(255,255,255), bgcolor=Color(0,0,0), rate=1),
+            partial(pattern_Confetti, color=Color(180,79,2), bgcolor=Color(160,73,0), rate=2),
             #partial(pattern_Fire, cooling=55, sparking=120, rate=15),
             #partial(pattern_Water),
             #partial(pattern_MeteorRain, color=Color(255,240,250), meteorSize=10, meteorTrailDecay=5, meteorRandomDecay=True, rate=15),
-            #partial(pattern_RunningLights, color=Color(200,200,200))
         ]
 
         self.patternLen = len(self.patternList)
-
         self.indexOne = 0
         self.indexTwo = 4
 
-        self.patternOne = self.patternList[0](self.ledArrayOne, self.ledCount)
-        self.patternTwo = self.patternList[4](self.ledArrayTwo, self.ledCount)
+        self.patternOne = self.patternList[self.indexOne](self.ledArrayOne, self.ledCount)
+        self.patternTwo = self.patternList[self.indexTwo](self.ledArrayTwo, self.ledCount)
 
         self.normalOne = transition_None(self.ledArray, self.ledCount, self.ledArrayOne)
         self.normalTwo = transition_None(self.ledArray, self.ledCount, self.ledArrayTwo)
 
         self.transitionOne = transition_FadeWipe(self.ledArray, self.ledCount, self.ledArrayTwo, self.ledArrayOne, rate=1)
         self.transitionTwo = transition_FadeWipe(self.ledArray, self.ledCount, self.ledArrayOne, self.ledArrayTwo, rate=1)
-        self.transition = self.transitionOne
 
         self.idx = 0
         self.state = 0
@@ -1499,43 +1469,47 @@ class DisplayEngine(object):
 
     def tick(self):
 
+        # Play Pattern One
         if 0 == self.state:
-            self.patternOne = self.patternList[self.indexOne](self.ledArrayOne, self.ledCount)
-            self.indexOne += 1
-            self.indexOne %= self.patternLen
-            self.state += 1
-
-        elif 1 == self.state:
             if self.idx >= 1000:
                 self.state += 1
                 self.idx = -1
             self.patternOne.step()
             self.normalOne.step()
 
-        elif 2 == self.state:
-            self.patternTwo = self.patternList[self.indexTwo](self.ledArrayTwo, self.ledCount)
-            self.indexTwo += 1
-            self.indexTwo %= self.patternLen
-            self.state += 1
-
-        elif 3 == self.state:
+        # Transition to Two
+        elif 1 == self.state:
             self.patternOne.step()
             self.patternTwo.step()
-            if not self.transition.step():
+            if not self.transitionOne.step():
                 self.state += 1
 
-        elif 4 == self.state:
+        # Pattern One no longer visible - change pattern
+        elif 2 == self.state:
+            self.indexOne = random.randint(0, self.patternLen-1)
+            self.patternOne = self.patternList[self.indexOne](self.ledArrayOne, self.ledCount)
+            self.state += 1
+
+        # Play Pattern Two
+        elif 3 == self.state:
             if self.idx >= 1000:
                 self.state += 1
                 self.idx = -1
             self.patternTwo.step()
             self.normalTwo.step()
 
-        elif 5 == self.state:
+        # Transition to One
+        elif 4 == self.state:
             self.patternOne.step()
             self.patternTwo.step()
             if not self.transitionTwo.step():
                 self.state += 1
+
+        # Pattern Two no longer visible - change pattern
+        elif 5 == self.state:
+            self.indexTwo = random.randint(0, self.patternLen-1)
+            self.patternTwo = self.patternList[self.indexTwo](self.ledArrayTwo, self.ledCount)
+            self.state += 1
 
         elif 6 == self.state:
             self.state = 0
@@ -1608,7 +1582,7 @@ class PatternEngine(multiprocessing.Process if Global.__MULTIPROCESSING__ else t
         self.putMsgAud({'src': 'Pat', 'data': data})
         self.putMsgWeb({'src': 'Pat', 'data': data})
 
-    def _delay(self):
+    def _frame_delay(self):
         msCurr = time.time()
         msDelta = msCurr - self.msPrev
         if 0 < msDelta < self.msLoopDelta:
@@ -1624,6 +1598,8 @@ class PatternEngine(multiprocessing.Process if Global.__MULTIPROCESSING__ else t
             # send over the list of patterns
             self.putWeb({'addPattern': self.engine.getPatterns()})
 
+            displayActive = False
+           
             while self.running:
                 try:
                     # check for messages from the WebService
@@ -1640,13 +1616,28 @@ class PatternEngine(multiprocessing.Process if Global.__MULTIPROCESSING__ else t
 
                             self.logger.info("PatternEngine : " + str(msg))
 
-                            # {'src': 'Web', 'data': ['selectPattern', u'Bounce']}
+                            # {'src': 'Web', 'data': {'selectPattern', u'Bounce'}}
                             if src == 'Web':
-                                if data[0] == 'selectPattern':
-                                    self.engine.setPattern(data[1])
+                                if 'selectPattern' in data:
+                                    self.engine.setPattern(data['selectPattern'])
+                                    self.logger.info("from WEB : SELECTPATTERN " + data['selectPattern'])
 
-                    self.engine.tick()
-                    self._delay()
+                                elif 'displayOn' in data:
+                                    displayActive = data['displayOn']
+                                    self.logger.info("from WEB : DISPLAYON " + str(data['displayOn']))
+
+                                elif 'alwaysOn' in data:
+                                    self.logger.info("from APP : ALWAYSON " + str(data['alwaysOn']))
+                                    displayActive = data['alwaysOn']
+
+                            if src == 'App':
+                                if 'displayOn' in data:
+                                    displayActive = data['displayOn']
+                                    self.logger.info("from APP : DISPLAYON " + str(data['displayOn']))
+
+                    if displayActive:
+                        self.engine.tick()
+                        self._frame_delay()
 
                 except Exception as e:
                     self.stop()

@@ -25,6 +25,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
     clients = {}
     patterns = []
     selected_pattern = None
+    selected_alwayson = None
     
     def initialize(self, qApp, qAud, qWeb, qPat, config, sharedArrayBase, ledCount):
         self.config = config
@@ -78,7 +79,8 @@ class WSHandler(tornado.websocket.WebSocketHandler):
                     self.logger.debug("WS msg: " + str(msg))
 
                     if 'Pat' == src:
-                        if data['addPattern'] is not None:
+                        if 'addPattern' in data:
+                            # send patterns woth web clients
                             for pattern in data['addPattern']:
                                 self.sendAllData(['addPattern', pattern])
                                 WSHandler.patterns.append(pattern)
@@ -99,13 +101,20 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 
     def webMsgHandler(self, msg):
 
+        self.logger.info('Client Id: ' + self.id + " IP address: " + self.ipAddr + " : " + str(msg))
+
         # pattern message
         if (msg['event'] == 'pattern'):
             pattern = msg['data']
-            self.logger.info('Client Id: ' + self.id + " IP address: " + self.ipAddr + " pattern: " + pattern)
             WSHandler.selected_pattern = pattern
             WSHandler.sendOthersData(self.id, ['selectPattern', pattern])
-            self.putPat(['selectPattern', pattern])
+            self.putPat({'selectPattern': pattern})
+
+        if (msg['event'] == 'alwaysOn'):
+            alwaysOn = msg['data']
+            WSHandler.selected_alwayson = alwaysOn
+            WSHandler.sendOthersData(self.id, ['alwaysOn', alwaysOn])
+            self.putAll({'alwaysOn': alwaysOn})
 
     #=============================================================
 
@@ -129,8 +138,8 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 
         # initialize pattern list in client
         for pattern in WSHandler.patterns:
-            self.sendData(['addPattern', pattern])
-        self.sendData(['selectPattern', WSHandler.selected_pattern])
+            self.sendData({'addPattern': pattern})
+        self.sendData({'selectPattern': WSHandler.selected_pattern})
 
     def on_close(self):
         if self.id in WSHandler.clients:

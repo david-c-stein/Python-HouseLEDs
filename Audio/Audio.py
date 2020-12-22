@@ -221,8 +221,8 @@ class Audio(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading
                             event = msg['src']
                             data = msg['data']
 
-                            self.logger.info("Print : " + str(msg))
-
+                            self.logger.info("Audio : " + str(msg))
+                            
 
                             '''
                             # playMusic

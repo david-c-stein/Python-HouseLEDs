@@ -51,6 +51,8 @@ class IndexHandler(tornado.web.RequestHandler):
                              <option value="stop">Stop</option>
                         </select>
                         <input type="checkbox" id="diffuser" value="0" /> <label for="diffuser">Diffuser</label>
+
+                        <input type="checkbox" id="alwayson" value="0" /> <label for="alwayson">Always ON</label>
                     </form>
                     <p id="output"></p>
 
@@ -179,6 +181,10 @@ class IndexHandler(tornado.web.RequestHandler):
                                 ;
                             })
 
+                            socket.bind('alwaysOn', function(data) {
+                                selectAlwaysOn(data);
+                            })
+
                             socket.bind('pattern', function(data) {
                                 changeAnimation(data);
                             })
@@ -213,6 +219,12 @@ class IndexHandler(tornado.web.RequestHandler):
                         $('.ledstrip').toggleClass('diffuse');
                     });
 
+                    $('#alwayson').change(function(e) {
+                        var alwaysOn = $(e.target).val();
+                        console.log('always on ' + alwayson.checked);
+                        sendMsg('alwaysOn', alwayson.checked);
+                    });
+
                     $('#animselect').change(function(e) {
                         var newanim = $(e.target).val();
                         console.log('change to ' + newanim);
@@ -245,6 +257,12 @@ class IndexHandler(tornado.web.RequestHandler):
                     function selectPattern(pattern){
                         var element = document.getElementById('animselect');
                         element.value = pattern;
+                    }
+
+                    function selectAlwaysOn(alwaysOn){
+                        console.log('always on: ' + alwaysOn)
+                        document.getElementById('alwayson').checked = alwaysOn;
+
                     }
 
                 </script>

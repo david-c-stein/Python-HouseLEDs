@@ -37,9 +37,16 @@ else:
     else:
         from queue import Queue
 
+
 __version__ = "0.0.1"
 
 starttime = datetime.datetime.now().strftime("%b %d %Y %H:%M:%S")
+
+
+# San Jose International Airport
+lat = '37.236373767'  # latitude
+lon = '-121.92913348' # longtitude
+alt = 12              # altitude (meters)
 
 
 class Sun(object):
@@ -61,6 +68,109 @@ class Sun(object):
         return ephem.localtime(self.location.next_setting(self.sun))
 
 
+class displayTime(object):
+    def __init__(self, logger, start_hour=17, start_min=0, stop_hour=22, stop_min=0):
+        self.logger = logger
+        self.start_hour = start_hour
+        self.start_minute = start_min
+        self.stop_hour = stop_hour
+        self.stop_minute = stop_min
+
+        self._alwaysOn = False
+        self.starttype = None
+        self.stoptype = None
+
+        start = datetime.time(hour=start_hour, minute=start_min)
+        self.starttime = datetime.datetime.combine(datetime.datetime.today(), start)
+        stop = datetime.time(hour=stop_hour, minute=stop_min)
+        self.stoptime = datetime.datetime.combine(datetime.datetime.today(), stop)
+
+        self.sun = Sun(lat, lon, alt)
+        self.logger.info("Next sunrise: " + str(self.sun.nextSunrise()))
+        self.logger.info("Next sunset: " + str(self.sun.nextSunset()))
+
+    def setAlwaysOn(self, value):
+        self._alwaysOn = value
+
+    def setStart(self, hour, minute=0):
+        self.starttype = 'fixed'
+        self.start_hour = hour
+        self.start_minute = minute
+        start = datetime.time(hour=hour, minute=minute)
+        self.starttime = datetime.datetime.combine(datetime.datetime.today(), start)
+        self.logger.info("display start time: " + str(self.starttime))
+
+    def setStartNow(self):
+        self.starttype = 'fixed'
+        self.starttime = datetime.datetime.now()
+        self.logger.info("display start time: " + str(self.starttime))
+    
+    def setStartBeforeSunset(self, hour, minute=0):
+        self.starttype = 'sun'
+        self.start_hour = hour
+        self.start_minute = minute
+        sunrise = self.sun.nextSunrise()
+        self.logger.info("Next sunrise: " + str(sunrise))
+        self.starttime = sunset - datetime.timedelta(hours=0, minutes=30)
+        self.logger.info("display start time: " + str(self.starttime))
+
+    def setStop(self, hour, minute=0):
+        self.stoptype = 'fixed'
+        self.stop_hour = hour
+        self.stop_minute = minute
+
+        stop = datetime.time(hour=hour, minute=minute)
+        self.stoptime = datetime.datetime.combine(datetime.datetime.today(), stop)
+        self.logger.info("display stop time: " + str(self.starttime))
+
+    def setStopNow(self):
+        self.stoptype = 'fixed'
+        self.stoptime = datetime.datetime.now()
+        self.logger.info("display stop time: " + str(self.starttime))
+
+    def setStopAfterSunset(self, hour, minute=0):
+        self.stoptype = 'sun'
+        self.stop_hour = hour
+        self.stop_minute = minute
+        
+        sunset = self.sun.nextSunset()
+        self.logger.info("Next sunset: " + str(sunset))
+        self.stoptime =  sunset + datetime.timedelta(hours=0, minutes=30)
+        self.logger.info("display stop time: " + str(self.starttime))
+
+    def _checkTimeRollover(self):
+        now = datetime.datetime.now()
+        if self.starttime < now:
+            # get next days starttime
+            self.starttime += datetime.timedelta(days=1)
+        if self.stoptime < now:
+            # get next days stoptime
+            self.stoptime += datetime.timedelta(days=1)
+
+    def secondsToDisplayOn(self):
+        if self._alwaysOn:
+            return 0
+        now = datetime.datetime.now()
+        self._checkTimeRollover()
+        return self.starttime - now
+
+    def secondsToDisplayOff(self):
+        if self._alwaysOn:
+            return 999999
+        now = datetime.datetime.now()
+        self._checkTimeRollover()
+        return self.stoptime - now
+
+    def isDisplay(self):
+        if self._alwaysOn:
+            return True
+        now = datetime.datetime.now()
+        if self.starttime < now < self.stoptime:
+            return True
+        else:
+            return False
+
+
 class myApp(object):
     def __init__(self):
 
@@ -69,11 +179,6 @@ class myApp(object):
         self.pPE = None  # Pattern Engine thread/process
 
         self.logConfig = Logger.logConfig
-
-        # San Jose International Airport
-        self.lat = '37.236373767'  # latitude
-        self.lon = '-121.92913348' # longtitude
-        self.alt = 12              # altitude (meters)
 
         self.FRAMES_PER_SECOND = 30
         self.msLoopDelta = round(1.0/self.FRAMES_PER_SECOND, 4)
@@ -105,64 +210,19 @@ class myApp(object):
         self.running = True
         run = True
 
-        # start today 7a
-        startTime = datetime.time(hour=7, minute=0)
-        # stop today 12+9:30p
-        stopTime = datetime.time(hour=21, minute=30)
-
-        showStartTime = datetime.datetime.combine(datetime.datetime.today(), startTime)
-        showStopTime = datetime.datetime.combine(datetime.datetime.today(), stopTime)
-
         while(run):
             try:
-                if __TIMER__:
-                    self.sun = Sun(self.lat, self.lon, self.alt)
-                    sunrise = self.sun.nextSunrise()
-                    sunset = self.sun.nextSunset()
-
-                    self.logger.info("Next sunrise: " + str(sunrise))
-                    self.logger.info("Next sunset: " + str(sunset))
-
-                    #showStartTime = sunrise
-                    #showStartTime = sunset - datetime.timedelta(hours=0, minutes=30)
-                    #shhowStopTime = sunset + datetime.timedelta(hours=2, minutes=0)
-
-                    self.logger.info("showStartTime: " + str(showStartTime))
-                    self.logger.info("showStopTime: " + str(showStopTime))
-
-                    now = datetime.datetime.now()
-
-                    # this might be the next days sunrise if in running time
-                    if showStartTime > now and now < showStopTime:
-                        showStartTime = now - datetime.timedelta(hours=2, minutes = 0)
-
-                    if showStartTime < now < showStopTime:
-                        # initialize and run
-                        self.initialize()
-                        self.start(showStopTime)
-                        self.stop()
-
-                    elif showStopTime < now:
-                        # start and stop times for tomorrow
-                        showStartTime = datetime.datetime.combine(datetime.datetime.today() + datetime.timedelta(days=1), startTime)
-                        showStopTime = datetime.datetime.combine(datetime.datetime.today() + datetime.timedelta(days=1), stopTime)
-
-                        diff = showStartTime - now
-                        self.logger.info( "Sleeping : " + str(diff.seconds) + " seconds" )
-                        time.sleep(diff.seconds)
-                else:
-                    self.initialize()
-                    self.start(showStopTime)
-                    self.stop()
-
+                self.initialize()
+                self.start()
+                self.stop()
 
             except(KeyboardInterrupt, SystemExit):
                 self.logger.info("Interrupted Main process")
-                self.stop()
-                run = False
 
             except Exception as e:
                 self.logger.exception(e)
+
+            finally:
                 self.stop()
                 run = False
 
@@ -246,6 +306,8 @@ class myApp(object):
                     self.logger.error( "Audio Initialization Error: " + str(e) )
                     raise(e)
 
+            self.displayTime = displayTime(self.logger)
+
         except Exception as e:
             self.logger.exception( "Initialization Error: " + str(e) )
             raise(e)
@@ -269,7 +331,7 @@ class myApp(object):
         self.putMsgPat({'src': 'App', 'data': data})
         self.putMsgWeb({'src': 'App', 'data': data})
 
-    def _delay(self):
+    def _frame_delay(self):
         msCurr = time.time()
         msDelta = msCurr - self.msPrev
         if 0 < msDelta < self.msLoopDelta:
@@ -343,9 +405,8 @@ class myApp(object):
         except Exception as e:
             self.logger.exception(e)
 
-    def start(self, stopTime=None):
+    def start(self):
         try:
-
             self.logger.info("Main starting")
 
             # start pattern engine process
@@ -369,7 +430,7 @@ class myApp(object):
             # Gamma8  This table remaps linear input values (e.g. 127 = half brightness)
             # to nonlinear gamma-corrected output values (numbers producing the desired
             # effect on the LED; e.g. 36 = half brightness)
-
+            
             self.gamma8 = [
                 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
                 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,
@@ -388,30 +449,76 @@ class myApp(object):
               177,180,182,184,186,189,191,193,196,198,200,203,205,208,210,213,
               215,218,220,223,225,228,231,233,236,239,241,244,247,249,252,255 ]
 
-
-            check = self.FRAMES_PER_SECOND * 60
-
-
-
-            self.putAll("Test Message")
-        
-
+            displayActive = False
+            timeCheck = 0
 
             try:
                 while self.running:
-
                     if not self.getMsg.empty():
                         msg = self.getMsg.get()
                         if not Global.__MULTIPROCESSING__:
                             self.getMsg.task_done()
 
                         if (msg != None):
-                            event = msg['src']
+                            src = msg['src']
                             data = msg['data']
 
-                            self.logger.info("Print : " + str(msg))
+                            self.logger.info("Main : " + str(msg))
 
-                    if __LEDS__:
+                            if 'Web' == src:
+                                if 'setStartTime' in data:
+                                    self.displayTime.setStart(data['hour'], data['minute'])
+                                    timeCheck = 0
+
+                                elif 'setStopTime' in data:
+                                    self.displayTime.setStop(data['hour'], data['minute'])
+                                    timeCheck = 0
+
+                                elif 'displayOn' in data:
+                                    if data['displayOn']:
+                                        self.displayTime.setStartNow()
+                                    else:
+                                        self.displayTime.setStopNow()
+                                    displayActive = data['displayOn']
+                                    timecheck = 0
+
+                                elif 'alwaysOn' in data:
+                                    self.displayTime.setAlwaysOn(data['alwaysOn'])
+                                    displayActive = data['alwaysOn']
+
+                                    if not data['alwaysOn']:
+                                        # leds off
+                                        if __LEDS__:
+                                            for i in range(self.ledCount):
+                                                self.strip.setPixelColorRGB(i,0,0,0,0)
+                                            self.strip.show()
+                                            self.strip.show()
+
+
+                    if timeCheck == 0:
+                        if self.displayTime.isDisplay():
+                            self.putAll({'displayOn': True})
+                            displayActive = True
+                            diff = self.displayTime.secondsToDisplayOff()
+                            self.logger.info( "Display on for : " + str(diff))
+                        else:
+                            self.putAll({'displayOn': False})
+                            displayActive = False
+                            diff = self.displayTime.secondsToDisplayOn()
+                            self.logger.info( "Display off for : " + str(diff))
+
+                            # leds off
+                            if __LEDS__:
+                                for i in range(self.ledCount):
+                                    self.strip.setPixelColorRGB(i,0,0,0,0)
+                                self.strip.show()
+                                self.strip.show()
+
+                        timeCheck = int(diff.seconds * self.FRAMES_PER_SECOND)
+                    else:
+                        timeCheck -=1
+
+                    if __LEDS__ and displayActive:
                         for i in range(self.ledCount):
                             # gamma correct brighness with rgb leds
                             self.strip.setPixelColorRGB(i, self.gamma8[ledArray[i][0]], self.gamma8[ledArray[i][1]], self.gamma8[ledArray[i][2]])
@@ -419,34 +526,7 @@ class myApp(object):
 
                         self.strip.show()
 
-                    self._delay()
-
-                    ''' refactor this
-                    if stopTime:
-                        if(check <= 0) :
-                            check = self.FRAMES_PER_SECOND * 60
-                            now = datetime.datetime.now()
-                            if (now > stopTime):
-                                # Send message to PattenEngine
-                                self.putPat('None')
-
-                                self.logger.info("Stopping : stopTime reached")
-        # turn off all the leds
-        for i in range(self.ledCount):
-            self.strip.setPixelColorRGB(i,0,0,0,0)
-        print("ALL: off")
-        self.strip.show()
-        time.sleep(0.25)
-        self.strip.show()
-        time.sleep(0.25)
-        self.strip.show()
-        time.sleep(0.25)
-        self.strip.show()
-
-
-                        else:
-                            check -= 1
-                    '''
+                    self._frame_delay()
 
             except(KeyboardInterrupt, SystemExit):
                 self.logger.info("Interupted PatternEngine process")
@@ -459,7 +539,6 @@ class myApp(object):
                     # turn off all the leds
                     for i in range(self.ledCount):
                         self.strip.setPixelColorRGB(i,0,0,0,0)
-                    print("ALL: off")
                     self.strip.show()
                     self.strip.show()
                     self.strip.show()
@@ -475,7 +554,6 @@ class myApp(object):
                 # turn off all the leds
                 for i in range(self.ledCount):
                     self.strip.setPixelColorRGB(i,0,0,0,0)
-                print("ALL: off")
                 self.strip.show()
                 self.strip.show()
                 self.strip.show()
