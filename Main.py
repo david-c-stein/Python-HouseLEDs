@@ -152,14 +152,16 @@ class displayTime(object):
             return 0
         now = datetime.datetime.now()
         self._checkTimeRollover()
-        return self.starttime - now
+        diff = self.starttime - now
+        return diff.seconds
 
     def secondsToDisplayOff(self):
         if self._alwaysOn:
             return 999999
         now = datetime.datetime.now()
         self._checkTimeRollover()
-        return self.stoptime - now
+        diff = self.stoptime - now
+        return diff.seconds
 
     def isDisplay(self):
         if self._alwaysOn:
@@ -483,17 +485,11 @@ class myApp(object):
                                     timecheck = 0
 
                                 elif 'alwaysOn' in data:
+
+                                    ###### dcsdcsdcsdcs  -- need to fix displayActive logic with web UI
                                     self.displayTime.setAlwaysOn(data['alwaysOn'])
                                     displayActive = data['alwaysOn']
-
-                                    if not data['alwaysOn']:
-                                        # leds off
-                                        if __LEDS__:
-                                            for i in range(self.ledCount):
-                                                self.strip.setPixelColorRGB(i,0,0,0,0)
-                                            self.strip.show()
-                                            self.strip.show()
-
+                                    timecheck = 0
 
                     if timeCheck == 0:
                         if self.displayTime.isDisplay():
@@ -514,7 +510,7 @@ class myApp(object):
                                 self.strip.show()
                                 self.strip.show()
 
-                        timeCheck = int(diff.seconds * self.FRAMES_PER_SECOND)
+                        timeCheck = int(diff * self.FRAMES_PER_SECOND)
                     else:
                         timeCheck -=1
 

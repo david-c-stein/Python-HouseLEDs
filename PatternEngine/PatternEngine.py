@@ -990,6 +990,7 @@ class DisplayEngine(object):
             elif 2 == self.state:
                 self.indexOne = random.randint(0, self.patternLen-1)
                 self.patternOne = self.patternList[self.indexOne](self.ledArrayOne, self.ledCount)
+                self.logger.info(" Pattern change to " + self.patternOne.getName())
                 self.state += 1
 
             # Play Pattern Two
@@ -1011,6 +1012,7 @@ class DisplayEngine(object):
             elif 5 == self.state:
                 self.indexTwo = random.randint(0, self.patternLen-1)
                 self.patternTwo = self.patternList[self.indexTwo](self.ledArrayTwo, self.ledCount)
+                self.logger.info(" Pattern change to " + self.patternTwo.getName())
                 self.state += 1
 
             elif 6 == self.state:
