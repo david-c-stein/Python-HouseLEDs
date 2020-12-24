@@ -69,7 +69,7 @@ class Sun(object):
 
 
 class displayTime(object):
-    def __init__(self, logger, start_hour=17, start_min=0, stop_hour=22, stop_min=0):
+    def __init__(self, logger, start_hour=16, start_min=0, stop_hour=22, stop_min=0):
         self.logger = logger
         self.start_hour = start_hour
         self.start_minute = start_min
