@@ -76,7 +76,6 @@ class displayTime(object):
         self.stop_hour = stop_hour
         self.stop_minute = stop_min
 
-        self._alwaysOn = False
         self.starttype = None
         self.stoptype = None
 
@@ -89,14 +88,9 @@ class displayTime(object):
         self.logger.info("Next sunrise: " + str(self.sun.nextSunrise()))
         self.logger.info("Next sunset: " + str(self.sun.nextSunset()))
 
-    def setAlwaysOn(self, value):
-        self._alwaysOn = value
-
-    def setStart(self, hour, minute=0):
+    def setStart(self, time):
         self.starttype = 'fixed'
-        self.start_hour = hour
-        self.start_minute = minute
-        start = datetime.time(hour=hour, minute=minute)
+        start = datetime.datetime.strptime(time, '%H:%M:%S.%f').time()
         self.starttime = datetime.datetime.combine(datetime.datetime.today(), start)
         self.logger.info("display start time: " + str(self.starttime))
 
@@ -114,12 +108,9 @@ class displayTime(object):
         self.starttime = sunset - datetime.timedelta(hours=0, minutes=30)
         self.logger.info("display start time: " + str(self.starttime))
 
-    def setStop(self, hour, minute=0):
-        self.stoptype = 'fixed'
-        self.stop_hour = hour
-        self.stop_minute = minute
-
-        stop = datetime.time(hour=hour, minute=minute)
+    def setStop(self, time):
+        self.starttype = 'fixed'
+        stop = datetime.datetime.strptime(time, '%H:%M:%S.%f').time()
         self.stoptime = datetime.datetime.combine(datetime.datetime.today(), stop)
         self.logger.info("display stop time: " + str(self.starttime))
 
@@ -148,24 +139,18 @@ class displayTime(object):
             self.stoptime += datetime.timedelta(days=1)
 
     def secondsToDisplayOn(self):
-        if self._alwaysOn:
-            return 0
         now = datetime.datetime.now()
         self._checkTimeRollover()
         diff = self.starttime - now
         return diff.seconds
 
     def secondsToDisplayOff(self):
-        if self._alwaysOn:
-            return 999999
         now = datetime.datetime.now()
         self._checkTimeRollover()
         diff = self.stoptime - now
         return diff.seconds
 
     def isDisplay(self):
-        if self._alwaysOn:
-            return True
         now = datetime.datetime.now()
         if self.starttime < now < self.stoptime:
             return True
@@ -468,12 +453,12 @@ class myApp(object):
                             self.logger.info("Main : " + str(msg))
 
                             if 'Web' == src:
-                                if 'setStartTime' in data:
-                                    self.displayTime.setStart(data['hour'], data['minute'])
+                                if 'startTimePicker' in data:
+                                    self.displayTime.setStart(data['startTimePicker'])
                                     timeCheck = 0
 
-                                elif 'setStopTime' in data:
-                                    self.displayTime.setStop(data['hour'], data['minute'])
+                                elif 'stopTimePicker' in data:
+                                    self.displayTime.setStop(data['stopTimePicker'])
                                     timeCheck = 0
 
                                 elif 'displayOn' in data:
@@ -484,14 +469,13 @@ class myApp(object):
                                     displayActive = data['displayOn']
                                     timecheck = 0
 
-                                elif 'alwaysOn' in data:
-
-                                    ###### dcsdcsdcsdcs  -- need to fix displayActive logic with web UI
-                                    self.displayTime.setAlwaysOn(data['alwaysOn'])
-                                    displayActive = data['alwaysOn']
-                                    timecheck = 0
+                                elif 'forceOn' in data:
+                                    displayActive = data['forceOn']
 
                     if timeCheck == 0:
+
+                        ###### dcsdcsdcsdcs  -- need to fix logic
+
                         if self.displayTime.isDisplay():
                             self.putAll({'displayOn': True})
                             displayActive = True

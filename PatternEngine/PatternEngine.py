@@ -1178,9 +1178,9 @@ class PatternEngine(multiprocessing.Process if Global.__MULTIPROCESSING__ else t
                                     displayActive = data['displayOn']
                                     self.logger.info("from WEB : DISPLAYON " + str(data['displayOn']))
 
-                                elif 'alwaysOn' in data:
-                                    self.logger.info("from APP : ALWAYSON " + str(data['alwaysOn']))
-                                    displayActive = data['alwaysOn']
+                                elif 'forceOn' in data:
+                                    self.logger.info("from APP : FORCEON " + str(data['forceOn']))
+                                    displayActive = data['forceOn']
 
                             if src == 'App':
                                 if 'displayOn' in data:

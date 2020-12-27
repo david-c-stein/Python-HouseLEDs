@@ -25,7 +25,9 @@ class WSHandler(tornado.websocket.WebSocketHandler):
     clients = {}
     patterns = []
     selected_pattern = None
-    selected_alwayson = None
+    selected_forceon = None
+    selected_startTimePicker = None
+    selected_stopTimePicker = None
     
     def initialize(self, qApp, qAud, qWeb, qPat, config, sharedArrayBase, ledCount):
         self.config = config
@@ -64,7 +66,8 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         self.putMsgPat({'src': 'Web', 'data': data})
 
     #=============================================================
-
+    # Message handler for backend
+    
     def msgHandler(self):
         try:
             if not self.getMsg.empty():
@@ -80,12 +83,19 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 
                     if 'Pat' == src:
                         if 'addPattern' in data:
-                            # send patterns woth web clients
+                            # patterns for web clients
                             for pattern in data['addPattern']:
                                 self.sendAllData(['addPattern', pattern])
                                 WSHandler.patterns.append(pattern)
 
-                            self.logger.info("msgHandler: " + str(WSHandler.patterns))
+                    if 'App' == src:
+                        if 'startTime' in data:
+                            self.sendAllData(['startTimePicker', startTime])
+                            WSHandler.selected_startTimePicker = startTime
+
+                        elif 'stopTime' in data:
+                            self.sendAllData(['stopTimePicker', stopTime])
+                            WSHandler.selected_stopTimePicker = stopTime
    
             # ledinfo to webpage
             self.sendAllData(['ledData', self.ledArray.tolist()])
@@ -98,7 +108,8 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             raise
 
     #=============================================================
-
+    # Message handler for web clients
+    
     def webMsgHandler(self, msg):
 
         self.logger.info('Client Id: ' + self.id + " IP address: " + self.ipAddr + " : " + str(msg))
@@ -110,11 +121,23 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             WSHandler.sendOthersData(self.id, ['selectPattern', pattern])
             self.putPat({'selectPattern': pattern})
 
-        if (msg['event'] == 'alwaysOn'):
-            alwaysOn = msg['data']
-            WSHandler.selected_alwayson = alwaysOn
-            WSHandler.sendOthersData(self.id, ['alwaysOn', alwaysOn])
-            self.putAll({'alwaysOn': alwaysOn})
+        elif (msg['event'] == 'forceOn'):
+            forceOn = msg['data']
+            WSHandler.selected_forceon = forceOn
+            WSHandler.sendOthersData(self.id, ['forceOn', forceOn])
+            self.putAll({'forceOn': forceOn})
+
+        elif (msg['event'] == 'startTimePicker'):
+            startTimePicker = msg['data']
+            WSHandler.selected_startTimePicker = startTimePicker
+            WSHandler.sendOthersData(self.id, ['startTimePicker', startTimePicker])
+            self.putApp({'startTimePicker': startTimePicker})
+
+        elif (msg['event'] == 'stopTimePicker'):
+            stopTimePicker = msg['data']
+            WSHandler.selected_stopTimePicker = stopTimePicker
+            WSHandler.sendOthersData(self.id, ['stopTimePicker', stopTimePicker])
+            self.putApp({'stopTimePicker': stopTimePicker})
 
     #=============================================================
 

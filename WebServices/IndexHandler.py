@@ -30,38 +30,61 @@ class IndexHandler(tornado.web.RequestHandler):
             <head id="head">
                 <title>""" + title + """</title>
                 <meta charset="utf-8" />
-                <link rel="stylesheet" href="static/assets/css/ledstrip.css" />
+                <link href="static/assets/css/bootstrap.min.css" rel="stylesheet">
+                <link href="static/assets/css/ledstrip.css" rel="stylesheet" >
+                <link href="static/assets/css/mdtimepicker.css" rel="stylesheet">
                 
-                <script src="static/assets/js/jquery.js"></script>
+                <script src="static/assets/js/jquery-3.5.1.min.js"></script>
+                <script src="static/assets/js/bootstrap.min.js"></script>
                 <script src="static/assets/js/rAF.js"></script>
                 <script src="static/assets/js/ledstrip.js"></script>
                 <script src="static/assets/js/ws2812.js"></script>
                 <script src="static/assets/js/arduino_funcs.js"></script>
                 <script src="static/assets/js/generator.js"></script>
+                <script src="static/assets/js/mdtimepicker.js"></script>
             </head>
             <body id="body">
                 <noscript>
                     <div class='enableJS'>You need to enable javascript</div>
                 </noscript>
 
-                <div id="main" class="container">
-                    <form>
-                        <select id="animselect">
-                             <option value="pattern">Pattern</option>
-                             <option value="stop">Stop</option>
-                        </select>
-                        <input type="checkbox" id="diffuser" value="0" /> <label for="diffuser">Diffuser</label>
-
-                        <input type="checkbox" id="alwayson" value="0" /> <label for="alwayson">Always ON</label>
-                    </form>
-                    <p id="output"></p>
-
-                    <div class="ledstrip"></div>
-
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <center>
+                            <div class="page-header">
+                                <h1>House Holiday Lights</h1>
+                                <h3>A work in progress</h3>
+                            </div>
+                            </center>
+                        </div>
+                    </div>
+                    <hr/>
+                    <div class="row">
+                        <div class="col-md-2">
+                            <select id="animselect">
+                                 <option value="pattern">Pattern</option>
+                                 <option value="stop">Stop</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="checkbox" id="forceon" value="0" /> <label for="forceon">Force ON</label>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="text" id="startTimePicker"/> <label for="startTimePicker">Start time</label>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="text" id="stopTimePicker"/> <label for="stopTimePicker">Stop time</label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="ledstrip"></div>
+                        </div>
+                    </div>
                 </div>
-
+              
                 <!-- Start of websocket yummy goodness -->
-
                 <script type="text/javascript" id="wsScript">
 
                     var socket;
@@ -73,7 +96,6 @@ class IndexHandler(tornado.web.RequestHandler):
                     }
 
                     window.onload = function() {
-
                         var websocket = false;
 
                         if("WebSocket" in window) {
@@ -156,8 +178,7 @@ class IndexHandler(tornado.web.RequestHandler):
                             var dispatch = function(event_name, message) {
                                 var chain = callbacks[event_name];
                                 if (typeof chain == 'undefined')
-                                    // no callbacks for this event
-                                    return;             
+                                    return;  // no callbacks for this event
                                 for(var i = 0; i < chain.length; i++)
                                     chain[i](message);
                             }
@@ -181,8 +202,8 @@ class IndexHandler(tornado.web.RequestHandler):
                                 ;
                             })
 
-                            socket.bind('alwaysOn', function(data) {
-                                selectAlwaysOn(data);
+                            socket.bind('forceOn', function(data) {
+                                selectForceOn(data);
                             })
 
                             socket.bind('pattern', function(data) {
@@ -202,6 +223,14 @@ class IndexHandler(tornado.web.RequestHandler):
                                     driver.setLEDs(data, data.length);
                                 }
                             })
+
+                            socket.bind('startTimePicker', function(data) {
+                                $('#startTimePicker').mdtimepicker('setValue', data);
+                            })
+
+                            socket.bind('stopTimePicker', function(data) {
+                                $('#stopTimePicker').mdtimepicker('setValue', data);
+                            })
                         };
                     }
 
@@ -215,14 +244,10 @@ class IndexHandler(tornado.web.RequestHandler):
                     driver.init();
                     animation = driver.animate.bind(driver)();
 
-                    $('#diffuser').change(function(e) {
-                        $('.ledstrip').toggleClass('diffuse');
-                    });
-
-                    $('#alwayson').change(function(e) {
-                        var alwaysOn = $(e.target).val();
-                        console.log('always on ' + alwayson.checked);
-                        sendMsg('alwaysOn', alwayson.checked);
+                    $('#forceon').change(function(e) {
+                        var forceOn = $(e.target).val();
+                        console.log('force on ' + forceon.checked);
+                        sendMsg('forceOn', forceon.checked);
                     });
 
                     $('#animselect').change(function(e) {
@@ -230,6 +255,17 @@ class IndexHandler(tornado.web.RequestHandler):
                         console.log('change to ' + newanim);
                         sendMsg('pattern', newanim);
                     });
+
+                    $('#startTimePicker').mdtimepicker({theme: 'green'}).on('timechanged', function(e){
+                        console.log('startTimePicker ' + e.time);
+                        sendMsg('startTimePicker', e.time);   // data-time value
+                    });
+
+                    $('#stopTimePicker').mdtimepicker().on('timechanged', function(e){
+                        console.log('stopTimePicker ' + e.time);
+                        sendMsg('stopTimePicker', e.time);   // data-time value
+                    });
+
                    
                     function changeAnimation(newanim){
                         animation = cancelAnimationFrame(animation);
@@ -259,9 +295,9 @@ class IndexHandler(tornado.web.RequestHandler):
                         element.value = pattern;
                     }
 
-                    function selectAlwaysOn(alwaysOn){
-                        console.log('always on: ' + alwaysOn)
-                        document.getElementById('alwayson').checked = alwaysOn;
+                    function selectFOrceOn(forceOn){
+                        console.log('force on: ' + forceOn)
+                        document.getElementById('forceon').checked = forceOn;
 
                     }
 
