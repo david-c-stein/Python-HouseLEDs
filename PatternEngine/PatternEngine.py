@@ -374,12 +374,12 @@ def fadeToBlack(color1, percent):
 def fadeDownToColor(color1, color2, percent):
 
     overlay = bound8(int(percent*255))
-    
+
     if overlay <= 0:
         return color1
     elif overlay >= 255:
         return color2
-    else:    
+    else:
         if color1[0] < color2[0]:
             red = scale8(color1[0], keep) + scale8(color2[0], overlay)
             #red = bound8(int((color1[0] * float(percent) / 100)) + int((color2[0] * float(100 - percent) / 100)))
@@ -426,7 +426,7 @@ class pattern_Solid(object):
     def step(self):
         for i in range(0, self.ledCnt):
             self.leds[i] = self.color
-            
+
         if self.duration is not None:
             self.duration -= 1
             if self.duration > 0:
@@ -535,7 +535,7 @@ class pattern_TheaterChase(object):
         self.width = width
         self.rate = rate
         self.duration = duration
-        
+
         self.arrayColor = []
 
         if self.direction == FORWARD:
@@ -1023,7 +1023,7 @@ class DisplayEngine(object):
             if 0 == self.state:
                 if not self.patternOne.step():
                     self.state += 1
-                    self.idx = -1                
+                    self.idx = -1
                 self.normalOne.step()
 
             # Transition to Two
@@ -1044,7 +1044,7 @@ class DisplayEngine(object):
             elif 3 == self.state:
                 if not self.patternTwo.step():
                     self.state += 1
-                    self.idx = -1                
+                    self.idx = -1
                 self.normalTwo.step()
 
             # Transition to One
@@ -1151,7 +1151,7 @@ class PatternEngine(multiprocessing.Process if Global.__MULTIPROCESSING__ else t
             self.putWeb({'addPattern': self.engine.getPatterns()})
 
             displayActive = False
-           
+
             while self.running:
                 try:
                     # check for messages from the WebService

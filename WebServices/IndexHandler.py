@@ -8,17 +8,17 @@ import uuid
 class IndexHandler(tornado.web.RequestHandler):
 
     def initialize(self, config, ledCount):
-        
+
         self.config = config
 
         self.logger = logging.getLogger(__name__)
         self.logger.info("Initializing " + __file__)
-       
+
         self.address = self.config["IPADDRESS"]
         self.port = self.config["SOCKETIOPORT"]
 
         self.ledCount = ledCount
-        
+
     @tornado.web.asynchronous
     def get(self):
 
@@ -33,7 +33,7 @@ class IndexHandler(tornado.web.RequestHandler):
                 <link href="static/assets/css/bootstrap.min.css" rel="stylesheet">
                 <link href="static/assets/css/ledstrip.css" rel="stylesheet" >
                 <link href="static/assets/css/mdtimepicker.css" rel="stylesheet">
-                
+
                 <script src="static/assets/js/jquery-3.5.1.min.js"></script>
                 <script src="static/assets/js/bootstrap.min.js"></script>
                 <script src="static/assets/js/rAF.js"></script>
@@ -83,7 +83,7 @@ class IndexHandler(tornado.web.RequestHandler):
                         </div>
                     </div>
                 </div>
-              
+
                 <!-- Start of websocket yummy goodness -->
                 <script type="text/javascript" id="wsScript">
 
@@ -266,7 +266,7 @@ class IndexHandler(tornado.web.RequestHandler):
                         sendMsg('stopTimePicker', e.time);   // data-time value
                     });
 
-                   
+
                     function changeAnimation(newanim){
                         animation = cancelAnimationFrame(animation);
                         switch(newanim) {

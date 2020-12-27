@@ -28,7 +28,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
     selected_forceon = None
     selected_startTimePicker = None
     selected_stopTimePicker = None
-    
+
     def initialize(self, qApp, qAud, qWeb, qPat, config, sharedArrayBase, ledCount):
         self.config = config
         self.logger = logging.getLogger(__name__)
@@ -67,7 +67,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 
     #=============================================================
     # Message handler for backend
-    
+
     def msgHandler(self):
         try:
             if not self.getMsg.empty():
@@ -96,7 +96,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
                         elif 'stopTime' in data:
                             self.sendAllData(['stopTimePicker', stopTime])
                             WSHandler.selected_stopTimePicker = stopTime
-   
+
             # ledinfo to webpage
             self.sendAllData(['ledData', self.ledArray.tolist()])
 
@@ -109,7 +109,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 
     #=============================================================
     # Message handler for web clients
-    
+
     def webMsgHandler(self, msg):
 
         self.logger.info('Client Id: ' + self.id + " IP address: " + self.ipAddr + " : " + str(msg))
@@ -130,14 +130,14 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         elif (msg['event'] == 'startTimePicker'):
             startTimePicker = msg['data']
             WSHandler.selected_startTimePicker = startTimePicker
-            WSHandler.sendOthersData(self.id, ['startTimePicker', startTimePicker])
-            self.putApp({'startTimePicker': startTimePicker})
+            WSHandler.sendOthersData(self.id, ['startTimePicker', WSHandler.selected_startTimePicker])
+            self.putApp({'startTimePicker': WSHandler.selected_startTimePicker})
 
         elif (msg['event'] == 'stopTimePicker'):
             stopTimePicker = msg['data']
             WSHandler.selected_stopTimePicker = stopTimePicker
-            WSHandler.sendOthersData(self.id, ['stopTimePicker', stopTimePicker])
-            self.putApp({'stopTimePicker': stopTimePicker})
+            WSHandler.sendOthersData(self.id, ['stopTimePicker', WSHandler.selected_stopTimePicker])
+            self.putApp({'stopTimePicker': WSHandler.selected_stopTimePicker})
 
     #=============================================================
 
@@ -161,8 +161,11 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 
         # initialize pattern list in client
         for pattern in WSHandler.patterns:
-            self.sendData({'addPattern': pattern})
-        self.sendData({'selectPattern': WSHandler.selected_pattern})
+            self.sendData(['addPattern', pattern])
+
+        self.sendData(['selectPattern', WSHandler.selected_pattern])
+        self.sendData(['startTimePicker', WSHandler.selected_startTimePicker])
+        self.sendData(['stopTimePicker', WSHandler.selected_stopTimePicker])
 
     def on_close(self):
         if self.id in WSHandler.clients:

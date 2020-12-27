@@ -98,7 +98,7 @@ class displayTime(object):
         self.starttype = 'fixed'
         self.starttime = datetime.datetime.now()
         self.logger.info("display start time: " + str(self.starttime))
-    
+
     def setStartBeforeSunset(self, hour, minute=0):
         self.starttype = 'sun'
         self.start_hour = hour
@@ -123,7 +123,7 @@ class displayTime(object):
         self.stoptype = 'sun'
         self.stop_hour = hour
         self.stop_minute = minute
-        
+
         sunset = self.sun.nextSunset()
         self.logger.info("Next sunset: " + str(sunset))
         self.stoptime =  sunset + datetime.timedelta(hours=0, minutes=30)
@@ -152,11 +152,10 @@ class displayTime(object):
 
     def isDisplay(self):
         now = datetime.datetime.now()
-        if self.starttime < now < self.stoptime:
+        if self.starttime <= now <= self.stoptime:
             return True
         else:
             return False
-
 
 class myApp(object):
     def __init__(self):
@@ -417,7 +416,7 @@ class myApp(object):
             # Gamma8  This table remaps linear input values (e.g. 127 = half brightness)
             # to nonlinear gamma-corrected output values (numbers producing the desired
             # effect on the LED; e.g. 36 = half brightness)
-            
+
             self.gamma8 = [
                 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
                 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,
@@ -472,15 +471,17 @@ class myApp(object):
                                 elif 'forceOn' in data:
                                     displayActive = data['forceOn']
 
-                    if timeCheck == 0:
+                    # to help minimize cpu expensive continous time checks
+                    if timeCheck <= 0:
 
-                        ###### dcsdcsdcsdcs  -- need to fix logic
+                        self.logger.info(".....TIMECHECK.....")
 
                         if self.displayTime.isDisplay():
                             self.putAll({'displayOn': True})
                             displayActive = True
                             diff = self.displayTime.secondsToDisplayOff()
                             self.logger.info( "Display on for : " + str(diff))
+
                         else:
                             self.putAll({'displayOn': False})
                             displayActive = False
@@ -494,9 +495,11 @@ class myApp(object):
                                 self.strip.show()
                                 self.strip.show()
 
-                        timeCheck = int(diff * self.FRAMES_PER_SECOND)
+                        timeCheck = diff
                     else:
-                        timeCheck -=1
+                        timeCheck -= 1
+                        time.sleep(1)
+
 
                     if __LEDS__ and displayActive:
                         for i in range(self.ledCount):
