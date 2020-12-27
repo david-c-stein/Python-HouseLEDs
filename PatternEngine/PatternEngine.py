@@ -974,19 +974,19 @@ class DisplayEngine(object):
         '''
 
         self.patternList = [
-            partial(pattern_Solid, name='Red', color=ColorByName.Red, duration=1000), # duration=(FRAMES_PER_SECOND*10)),
-            partial(pattern_Solid, name='OrangeRed', color=ColorByName.OrangeRed, duration=1000), # duration=(FRAMES_PER_SECOND*10)),
-            partial(pattern_Solid, name='Orange', color=ColorByName.Orange, duration=1000), # duration=(FRAMES_PER_SECOND*10)),
-            partial(pattern_Solid, name='Yellow', color=ColorByName.Yellow, duration=1000), # duration=(FRAMES_PER_SECOND*10)),
-            partial(pattern_Solid, name='YellowGreen', color=ColorByName.YellowGreen, duration=1000), # duration=(FRAMES_PER_SECOND*10)),
-            partial(pattern_Solid, name='Green', color=ColorByName.Green, duration=1000), # duration=(FRAMES_PER_SECOND*10)),
-            partial(pattern_RunningLights, name='WhiteRunningLights', color=ColorByName.WhiteSmoke, rate=12, duration=2000), # duration=(FRAMES_PER_SECOND*10)),
-            partial(pattern_TheaterChase, name='WhiteTheaterChase', color=ColorByName.WhiteSmoke, rate=12, duration=2000), # duration=(FRAMES_PER_SECOND*10)),
-            partial(pattern_Rainbow, rate=4, duration=4000), # duration=(FRAMES_PER_SECOND*10)),
-            partial(pattern_Confetti, name='RainbowConfetti', color='rainbow', count=10, rate=4, duration=4000), # duration=(FRAMES_PER_SECOND*10)),
-            partial(pattern_Confetti, name='WhiteConfetti', color=ColorByName.White, bgcolor=ColorByName.Black, rate=4, duration=4000), # duration=(FRAMES_PER_SECOND*10)),
-            partial(pattern_FromImage, name='ColorWaves', fileName="./Media/Images/ColorWaves.jpg", mode='RGB', rate=6, duration=6000), # duration=(FRAMES_PER_SECOND*10)),
-            partial(pattern_FromImage, name='PasteleDots', fileName="./Media/Images/PasteleDots.jpg", mode='RGB', rate=6, duration=6000), # duration=(FRAMES_PER_SECOND*10)),
+            partial(pattern_Solid, name='Red', color=ColorByName.Red, duration=1000),
+            partial(pattern_Solid, name='OrangeRed', color=ColorByName.OrangeRed, duration=1000),
+            partial(pattern_Solid, name='Orange', color=ColorByName.Orange, duration=1000),
+            partial(pattern_Solid, name='Yellow', color=ColorByName.Yellow, duration=1000),
+            partial(pattern_Solid, name='YellowGreen', color=ColorByName.YellowGreen, duration=1000),
+            partial(pattern_Solid, name='Green', color=ColorByName.Green, duration=1000),
+            partial(pattern_RunningLights, name='WhiteRunningLights', color=ColorByName.WhiteSmoke, rate=8, duration=2000),
+            partial(pattern_TheaterChase, name='WhiteTheaterChase', color=ColorByName.WhiteSmoke, rate=8, duration=2000),
+            partial(pattern_Rainbow, rate=4, duration=4000),
+            partial(pattern_Confetti, name='RainbowConfetti', color='rainbow', count=10, rate=2, duration=4000),
+            partial(pattern_Confetti, name='WhiteConfetti', color=ColorByName.White, bgcolor=ColorByName.Black, rate=2, duration=4000),
+            partial(pattern_FromImage, name='ColorWaves', fileName="./Media/Images/ColorWaves.jpg", mode='RGB', rate=6, duration=6000),
+            partial(pattern_FromImage, name='PasteleDots', fileName="./Media/Images/PasteleDots.jpg", mode='RGB', rate=6, duration=6000),
         ]
 
         self.patternLen = len(self.patternList)
@@ -1188,7 +1188,7 @@ class PatternEngine(multiprocessing.Process if Global.__MULTIPROCESSING__ else t
                             if not displayActive:
                                 for i in range(self.ledCount):
                                     self.ledArray[i] = ColorByName.Black
-                                        
+
                     if displayActive or forceActive:
                         self.engine.tick()
                         self._frame_delay()
