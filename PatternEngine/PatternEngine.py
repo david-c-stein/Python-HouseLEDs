@@ -1151,6 +1151,7 @@ class PatternEngine(multiprocessing.Process if Global.__MULTIPROCESSING__ else t
             self.putWeb({'addPattern': self.engine.getPatterns()})
 
             displayActive = False
+            forceActive = False
 
             while self.running:
                 try:
@@ -1168,26 +1169,27 @@ class PatternEngine(multiprocessing.Process if Global.__MULTIPROCESSING__ else t
 
                             self.logger.info("PatternEngine : " + str(msg))
 
-                            # {'src': 'Web', 'data': {'selectPattern', u'Bounce'}}
                             if src == 'Web':
                                 if 'selectPattern' in data:
                                     self.engine.setPattern(data['selectPattern'])
-                                    self.logger.info("from WEB : SELECTPATTERN " + data['selectPattern'])
 
                                 elif 'displayOn' in data:
                                     displayActive = data['displayOn']
-                                    self.logger.info("from WEB : DISPLAYON " + str(data['displayOn']))
 
                                 elif 'forceOn' in data:
                                     self.logger.info("from APP : FORCEON " + str(data['forceOn']))
-                                    displayActive = data['forceOn']
+                                    forceActive = data['forceOn']
 
                             if src == 'App':
                                 if 'displayOn' in data:
                                     displayActive = data['displayOn']
-                                    self.logger.info("from APP : DISPLAYON " + str(data['displayOn']))
 
-                    if displayActive:
+                            # clear display array
+                            if not displayActive:
+                                for i in range(self.ledCount):
+                                    self.ledArray[i] = ColorByName.Black
+                                        
+                    if displayActive or forceActive:
                         self.engine.tick()
                         self._frame_delay()
 
