@@ -1173,9 +1173,6 @@ class PatternEngine(multiprocessing.Process if Global.__MULTIPROCESSING__ else t
                                 if 'selectPattern' in data:
                                     self.engine.setPattern(data['selectPattern'])
 
-                                elif 'displayOn' in data:
-                                    displayActive = data['displayOn']
-
                                 elif 'forceOn' in data:
                                     self.logger.info("from APP : FORCEON " + str(data['forceOn']))
                                     forceActive = data['forceOn']

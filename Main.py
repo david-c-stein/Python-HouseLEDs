@@ -436,6 +436,7 @@ class myApp(object):
               215,218,220,223,225,228,231,233,236,239,241,244,247,249,252,255 ]
 
             displayActive = False
+            forceOn = False
             timeCheck = 0
 
             try:
@@ -460,46 +461,39 @@ class myApp(object):
                                     self.displayTime.setStop(data['stopTimePicker'])
                                     timeCheck = 0
 
-                                elif 'displayOn' in data:
-                                    if data['displayOn']:
-                                        self.displayTime.setStartNow()
-                                    else:
-                                        self.displayTime.setStopNow()
-                                    displayActive = data['displayOn']
-                                    timecheck = 0
-
                                 elif 'forceOn' in data:
-                                    displayActive = data['forceOn']
+                                    forceOn = data['forceOn']
 
-                    # to help minimize cpu expensive continous time checks
-                    if timeCheck <= 0:
-
-                        self.logger.info(".....TIMECHECK.....")
-
-                        if self.displayTime.isDisplay():
-                            self.putAll({'displayOn': True})
-                            displayActive = True
-                            diff = self.displayTime.secondsToDisplayOff()
-                            self.logger.info( "Display on for : " + str(diff))
-
-                        else:
-                            self.putAll({'displayOn': False})
-                            displayActive = False
-                            diff = self.displayTime.secondsToDisplayOn()
-                            self.logger.info( "Display off for : " + str(diff))
-
-                            # leds off
-                            if __LEDS__:
-                                for i in range(self.ledCount):
-                                    self.strip.setPixelColorRGB(i,0,0,0,0)
-                                self.strip.show()
-                                self.strip.show()
-
-                        timeCheck = diff
+                    if forceOn:
+                        displayActive = True
                     else:
-                        timeCheck -= 1
-                        time.sleep(1)
+                        # to help minimize cpu expensive continous time checks
+                        if timeCheck <= 0:
 
+                            self.logger.info(".....TIMECHECK.....")
+
+                            if self.displayTime.isDisplay():
+                                self.putAll({'displayOn': True})
+                                displayActive = True
+                                diff = self.displayTime.secondsToDisplayOff()
+                                self.logger.info( "Display on for : " + str(diff))
+
+                            else:
+                                self.putAll({'displayOn': False})
+                                displayActive = False
+                                diff = self.displayTime.secondsToDisplayOn()
+                                self.logger.info( "Display off for : " + str(diff))
+
+                                # leds off
+                                if __LEDS__:
+                                    for i in range(self.ledCount):
+                                        self.strip.setPixelColorRGB(i,0,0,0,0)
+                                    self.strip.show()
+                                    self.strip.show()
+
+                            timeCheck = diff * self.FRAMES_PER_SECOND
+                        else:
+                            timeCheck -= 1
 
                     if __LEDS__ and displayActive:
                         for i in range(self.ledCount):
