@@ -112,12 +112,12 @@ class displayTime(object):
         self.starttype = 'fixed'
         stop = datetime.datetime.strptime(time, '%H:%M:%S.%f').time()
         self.stoptime = datetime.datetime.combine(datetime.datetime.today(), stop)
-        self.logger.info("display stop time: " + str(self.starttime))
+        self.logger.info("display stop time: " + str(self.stoptime))
 
     def setStopNow(self):
         self.stoptype = 'fixed'
         self.stoptime = datetime.datetime.now()
-        self.logger.info("display stop time: " + str(self.starttime))
+        self.logger.info("display stop time: " + str(self.stoptime))
 
     def setStopAfterSunset(self, hour, minute=0):
         self.stoptype = 'sun'
@@ -127,7 +127,7 @@ class displayTime(object):
         sunset = self.sun.nextSunset()
         self.logger.info("Next sunset: " + str(sunset))
         self.stoptime =  sunset + datetime.timedelta(hours=0, minutes=30)
-        self.logger.info("display stop time: " + str(self.starttime))
+        self.logger.info("display stop time: " + str(self.stoptime))
 
     def _checkTimeRollover(self):
         now = datetime.datetime.now()
@@ -152,10 +152,17 @@ class displayTime(object):
 
     def isDisplay(self):
         now = datetime.datetime.now()
-        if self.starttime <= now <= self.stoptime:
-            return True
-        else:
-            return False
+        
+        if self.starttime < self.stoptime:
+            if self.starttime <= now <= self.stoptime:
+                return True
+            else:
+                return False
+        else:   # starttime has been moved to the next day's start time
+            if now <= self.stoptime:
+                return True
+            else:
+                return False
 
 class myApp(object):
     def __init__(self):

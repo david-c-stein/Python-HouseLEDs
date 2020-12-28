@@ -523,7 +523,7 @@ class pattern_Confetti(object):
 
 class pattern_TheaterChase(object):
 
-    def __init__(self, leds, ledCnt, name, color, colorBG=None, direction=FORWARD, width=6, rate=40, duration=None):
+    def __init__(self, leds, ledCnt, name, color, colorBG=None, direction=FORWARD, width=4, rate=40, duration=None):
         if colorBG is None:
             colorBG = Color(0, 0, 0)
         self.leds = leds
