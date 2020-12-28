@@ -500,9 +500,9 @@ class pattern_Confetti(object):
                     self.leds[pos] = randomColor(180)
                 elif self.color == 'rainbow':
                     self.j += 1
-                    if self.j > (255 * 4):
+                    if self.j > (255 * 8):
                         self.j = 0
-                    self.leds[pos] = rainbowWheel((self.j/4) & 0xFF)
+                    self.leds[pos] = rainbowWheel((self.j/8) & 0xFF)
                 else:
                     self.leds[pos] = self.color
 

@@ -40,7 +40,7 @@ else:
 
 __version__ = "0.0.1"
 
-starttime = datetime.datetime.now().strftime("%b %d %Y %H:%M:%S")
+appStartTime = datetime.datetime.now().strftime('%b %d %Y %H:%M:%S')
 
 
 # San Jose International Airport
@@ -92,12 +92,12 @@ class displayTime(object):
         self.starttype = 'fixed'
         start = datetime.datetime.strptime(time, '%H:%M:%S.%f').time()
         self.starttime = datetime.datetime.combine(datetime.datetime.today(), start)
-        self.logger.info("display start time: " + str(self.starttime))
+        self.logger.debug("display start time: " + str(self.starttime))
 
     def setStartNow(self):
         self.starttype = 'fixed'
         self.starttime = datetime.datetime.now()
-        self.logger.info("display start time: " + str(self.starttime))
+        self.logger.debug("display start time: " + str(self.starttime))
 
     def setStartBeforeSunset(self, hour, minute=0):
         self.starttype = 'sun'
@@ -106,18 +106,21 @@ class displayTime(object):
         sunrise = self.sun.nextSunrise()
         self.logger.info("Next sunrise: " + str(sunrise))
         self.starttime = sunset - datetime.timedelta(hours=0, minutes=30)
-        self.logger.info("display start time: " + str(self.starttime))
+        self.logger.debug("display start time: " + str(self.starttime))
+
+    def getStart(self):
+        return self.starttime.strftime('%H:%M:%S.%f')[:-3]
 
     def setStop(self, time):
         self.starttype = 'fixed'
         stop = datetime.datetime.strptime(time, '%H:%M:%S.%f').time()
         self.stoptime = datetime.datetime.combine(datetime.datetime.today(), stop)
-        self.logger.info("display stop time: " + str(self.stoptime))
+        self.logger.debug("display stop time: " + str(self.stoptime))
 
     def setStopNow(self):
         self.stoptype = 'fixed'
         self.stoptime = datetime.datetime.now()
-        self.logger.info("display stop time: " + str(self.stoptime))
+        self.logger.debug("display stop time: " + str(self.stoptime))
 
     def setStopAfterSunset(self, hour, minute=0):
         self.stoptype = 'sun'
@@ -127,17 +130,22 @@ class displayTime(object):
         sunset = self.sun.nextSunset()
         self.logger.info("Next sunset: " + str(sunset))
         self.stoptime =  sunset + datetime.timedelta(hours=0, minutes=30)
-        self.logger.info("display stop time: " + str(self.stoptime))
+        self.logger.debug("display stop time: " + str(self.stoptime))
+
+    def getStop(self):
+        return self.stoptime.strftime('%H:%M:%S.%f')[:-3]
 
     def _checkTimeRollover(self):
         now = datetime.datetime.now()
         if self.starttime < now:
             # get next days starttime
             self.starttime += datetime.timedelta(days=1)
+            self.logger.info("Next display start time: " + str(self.starttime))
         if self.stoptime < now:
             # get next days stoptime
             self.stoptime += datetime.timedelta(days=1)
-
+            self.logger.info("Next display stop time: " + str(self.stoptime))
+            
     def secondsToDisplayOn(self):
         now = datetime.datetime.now()
         self._checkTimeRollover()
@@ -152,17 +160,13 @@ class displayTime(object):
 
     def isDisplay(self):
         now = datetime.datetime.now()
-        
+        ret = False
         if self.starttime < self.stoptime:
-            if self.starttime <= now <= self.stoptime:
-                return True
-            else:
-                return False
-        else:   # starttime has been moved to the next day's start time
-            if now <= self.stoptime:
-                return True
-            else:
-                return False
+            if self.starttime <= now:
+                ret = True
+        elif now <= self.stoptime:
+                ret = True
+        return ret
 
 class myApp(object):
     def __init__(self):
@@ -183,7 +187,7 @@ class myApp(object):
     def main(self, argv):
         logging.config.dictConfig(self.logConfig)
         self.logger = logging.getLogger(__name__)
-        self.logger.info("Start time: " + starttime)
+        self.logger.info("Start time: " + appStartTime)
 
         # parse command line arguments
         try:
@@ -233,7 +237,7 @@ class myApp(object):
             self.logger.info("    nodes: " + platform.node())
             self.logger.info("PythonImp: " + platform.python_implementation())
             self.logger.info("PythonVer: " + platform.python_version())
-            self.logger.info("starttime: " + starttime)
+            self.logger.info("starttime: " + appStartTime)
             self.logger.info("scriptver: " + __version__)
             self.logger.info("------------------------------")
 
@@ -446,6 +450,9 @@ class myApp(object):
             forceOn = False
             timeCheck = 0
 
+            self.putWeb({'startTime': self.displayTime.getStart()})
+            self.putWeb({'stopTime': self.displayTime.getStop()})
+            
             try:
                 while self.running:
                     if not self.getMsg.empty():
@@ -457,7 +464,7 @@ class myApp(object):
                             src = msg['src']
                             data = msg['data']
 
-                            self.logger.info("Main : " + str(msg))
+                            self.logger.debug("Main : " + str(msg))
 
                             if 'Web' == src:
                                 if 'startTimePicker' in data:
@@ -477,19 +484,19 @@ class myApp(object):
                         # to help minimize cpu expensive continous time checks
                         if timeCheck <= 0:
 
-                            self.logger.info(".....TIMECHECK.....")
+                            self.logger.debug(".....TIMECHECK.....")
 
                             if self.displayTime.isDisplay():
                                 self.putAll({'displayOn': True})
                                 displayActive = True
                                 diff = self.displayTime.secondsToDisplayOff()
-                                self.logger.info( "Display on for : " + str(diff))
+                                self.logger.info( "Display on for : " + str(diff) + " seconds")
 
                             else:
                                 self.putAll({'displayOn': False})
                                 displayActive = False
                                 diff = self.displayTime.secondsToDisplayOn()
-                                self.logger.info( "Display off for : " + str(diff))
+                                self.logger.info( "Display off for : " + str(diff) + " seconds")
 
                                 # leds off
                                 if __LEDS__:
@@ -498,7 +505,7 @@ class myApp(object):
                                     self.strip.show()
                                     self.strip.show()
 
-                            timeCheck = diff * self.FRAMES_PER_SECOND
+                            timeCheck = diff
                         else:
                             timeCheck -= 1
 
@@ -509,8 +516,10 @@ class myApp(object):
                             #self.strip.setPixelColorRGB(i, ledArray[i][0], ledArray[i][1], ledArray[i][2])
 
                         self.strip.show()
+                        self._frame_delay()
 
-                    self._frame_delay()
+                    else:
+                        time.sleep(1)
 
             except(KeyboardInterrupt, SystemExit):
                 self.logger.info("Interupted PatternEngine process")
@@ -570,14 +579,14 @@ class myApp(object):
             cmd_folder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(inspect.currentframe()))[0]))
             if cmd_folder not in sys.path:
                 sys.path.insert(0, cmd_folder)
-                self.logger.info("Path Added : " + cmd_folder)
+                self.logger.debug("Path Added : " + cmd_folder)
 
             # include dirs passed
             for dir in dirs:
                 cmd_subfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile(inspect.currentframe()))[0], dir)))
                 if cmd_subfolder not in sys.path:
                     sys.path.insert(0, cmd_subfolder)
-                    self.logger.info("Path Added : " + cmd_subfolder)
+                    self.logger.debug("Path Added : " + cmd_subfolder)
 
         except Exception as e:
             self.logger.exception(str(e))

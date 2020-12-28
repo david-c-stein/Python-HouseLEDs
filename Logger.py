@@ -87,7 +87,7 @@ logConfig = {
     'formatters': {
         'detailed': {
             'class': 'logging.Formatter',
-            'format': '[%(levelname)-4s][%(asctime)-15s][%(processName)-14s][%(filename)-14s][%(funcName)-10s][%(lineno)-3s] : %(message)s'
+            'format': '[%(levelname)-4s][%(asctime)-15s][%(filename)-14s][%(funcName)-10s][%(lineno)-3s] : %(message)s'
         },
         'simple': {
             'class': 'logging.Formatter',
@@ -98,7 +98,7 @@ logConfig = {
         'console': {
             'class': 'logging.StreamHandler',
             'level': 'INFO',
-            'formatter': 'simple',
+            'formatter': 'detailed',
             'stream' : 'ext://sys.stdout'
         },
         'file': {

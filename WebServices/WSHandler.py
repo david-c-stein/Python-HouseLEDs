@@ -45,7 +45,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         self.putMsgPat = qPat.put
 
         # setup message handler
-        tornado.ioloop.IOLoop.instance().add_timeout(datetime.timedelta(milliseconds=100),self.msgHandler)
+        tornado.ioloop.IOLoop.instance().add_timeout(datetime.timedelta(milliseconds=50), self.msgHandler)
 
     def putApp(self, data):
         # send data to app
@@ -90,18 +90,20 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 
                     if 'App' == src:
                         if 'startTime' in data:
-                            self.sendAllData(['startTimePicker', startTime])
-                            WSHandler.selected_startTimePicker = startTime
+                            starttime = data['startTime']
+                            self.sendAllData(['startTimePicker', starttime])
+                            WSHandler.selected_startTimePicker = starttime
 
                         elif 'stopTime' in data:
-                            self.sendAllData(['stopTimePicker', stopTime])
-                            WSHandler.selected_stopTimePicker = stopTime
+                            stoptime = data['stopTime']
+                            self.sendAllData(['stopTimePicker', stoptime])
+                            WSHandler.selected_stopTimePicker = stoptime
 
             # ledinfo to webpage
             self.sendAllData(['ledData', self.ledArray.tolist()])
 
             # continue message handler
-            tornado.ioloop.IOLoop.instance().add_timeout(datetime.timedelta(milliseconds=100), self.msgHandler)
+            tornado.ioloop.IOLoop.instance().add_timeout(datetime.timedelta(milliseconds=50), self.msgHandler)
 
         except Exception as e:
             self.logger.exception(str(e))

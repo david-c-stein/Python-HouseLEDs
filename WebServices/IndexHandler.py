@@ -225,10 +225,12 @@ class IndexHandler(tornado.web.RequestHandler):
                             })
 
                             socket.bind('startTimePicker', function(data) {
+                                console.log('startTimePicker from BO : ' + data)
                                 $('#startTimePicker').mdtimepicker('setValue', data);
                             })
 
                             socket.bind('stopTimePicker', function(data) {
+                                console.log('stopTimePicker from BO : ' + data)
                                 $('#stopTimePicker').mdtimepicker('setValue', data);
                             })
                         };
