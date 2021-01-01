@@ -1069,7 +1069,7 @@ class DisplayEngine(object):
 
             if self.state != self.prevState:
                 self.prevState = self.state
-                self.logger.info("  >>>>> Display State: " + str(self.state))
+                self.logger.debug("  >>>>> Display State: " + str(self.state))
 
 
     def getPatterns(self):

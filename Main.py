@@ -145,7 +145,7 @@ class displayTime(object):
             # get next days stoptime
             self.stoptime += datetime.timedelta(days=1)
             self.logger.info("Next display stop time: " + str(self.stoptime))
-            
+
     def secondsToDisplayOn(self):
         now = datetime.datetime.now()
         self._checkTimeRollover()
@@ -179,7 +179,7 @@ class myApp(object):
 
         self.FRAMES_PER_SECOND = 30
         self.msLoopDelta = round(1.0/self.FRAMES_PER_SECOND, 4)
-        self.msPrev = 0
+        self.msPrev = float(0.0)
 
         self.strip = None
         self.run = False
@@ -272,8 +272,6 @@ class myApp(object):
 
             # hardware configuration
             self.configHW = {
-                #dcsdcs "HTTPPORT" : 8888,
-                #dcsdcs "SOCKETIOPORT" : 8888,
                 "HTTPPORT" : 8800,
                 "SOCKETIOPORT" : 8800,
             }
@@ -452,7 +450,7 @@ class myApp(object):
 
             self.putWeb({'startTime': self.displayTime.getStart()})
             self.putWeb({'stopTime': self.displayTime.getStop()})
-            
+
             try:
                 while self.running:
                     if not self.getMsg.empty():
@@ -496,7 +494,7 @@ class myApp(object):
                                 self.putAll({'displayOn': False})
                                 displayActive = False
                                 diff = self.displayTime.secondsToDisplayOn()
-                                self.logger.info( "Display off for : " + str(diff) + " seconds")
+                                self.logger.info("Display off for : " + str(diff) + " seconds")
 
                                 # leds off
                                 if __LEDS__:
@@ -505,7 +503,7 @@ class myApp(object):
                                     self.strip.show()
                                     self.strip.show()
 
-                            timeCheck = diff
+                            timeCheck = int(diff * self.FRAMES_PER_SECOND * 2)
                         else:
                             timeCheck -= 1
 
@@ -516,10 +514,8 @@ class myApp(object):
                             #self.strip.setPixelColorRGB(i, ledArray[i][0], ledArray[i][1], ledArray[i][2])
 
                         self.strip.show()
-                        self._frame_delay()
 
-                    else:
-                        time.sleep(1)
+                    delta = self._frame_delay()
 
             except(KeyboardInterrupt, SystemExit):
                 self.logger.info("Interupted PatternEngine process")
@@ -571,6 +567,10 @@ class myApp(object):
         print("\n\n sudo python " + __file__ + "\n")
         self.stop()
         exit(1)
+
+    def measure_temp():
+        temp = os.popen("vcgencmd measure_temp").readline()
+        return (temp.replace("temp=",""))
 
     def initPaths(self, dirs):
 

@@ -16,6 +16,9 @@ import numpy
 import pickle
 
 
+WEB_DISPLAY_REFRESH_RATE = 200   # milliseconds
+
+
 def getClientID():
     return ('ID_' + str(uuid.uuid1()).replace('-',''))
 
@@ -45,7 +48,10 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         self.putMsgPat = qPat.put
 
         # setup message handler
-        tornado.ioloop.IOLoop.instance().add_timeout(datetime.timedelta(milliseconds=50), self.msgHandler)
+        tornado.ioloop.IOLoop.instance().add_timeout(
+                    datetime.timedelta(milliseconds=WEB_DISPLAY_REFRESH_RATE),
+                    self.msgHandler
+                )
 
     def putApp(self, data):
         # send data to app
@@ -103,7 +109,10 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             self.sendAllData(['ledData', self.ledArray.tolist()])
 
             # continue message handler
-            tornado.ioloop.IOLoop.instance().add_timeout(datetime.timedelta(milliseconds=50), self.msgHandler)
+            tornado.ioloop.IOLoop.instance().add_timeout(
+                    datetime.timedelta(milliseconds=WEB_DISPLAY_REFRESH_RATE),
+                    self.msgHandler
+                )
 
         except Exception as e:
             self.logger.exception(str(e))
