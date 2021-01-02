@@ -16,7 +16,7 @@ import numpy
 import pickle
 
 
-WEB_DISPLAY_REFRESH_RATE = 200   # milliseconds
+WEB_DISPLAY_REFRESH_RATE = 100   # milliseconds
 
 
 def getClientID():

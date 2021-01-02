@@ -49,13 +49,48 @@ lon = '-121.92913348' # longtitude
 alt = 12              # altitude (meters)
 
 
+'''
+  https://learn.adafruit.com/led-tricks-gamma-correction
+
+  Gamma8  This table remaps linear input values (e.g. 127 = half brightness)
+  to nonlinear gamma-corrected output values (numbers producing the desired
+  effect on the LED; e.g. 36 = half brightness)
+
+  https://raw.githubusercontent.com/adafruit/Adafruit_Neopixel/master/Adafruit_NeoPixel.h
+  table containing an 8-bit gamma-correction table.
+
+        import math
+        gamma=2.6
+        for x in range(256):
+            print("{:3},".format(int(math.pow((x)/255.0,gamma)*255.0+0.5))),
+            if x&15 == 15: print
+'''
+gamma8 = [
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+    0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,  1,  1,  1,  1,
+    1,  1,  1,  1,  2,  2,  2,  2,  2,  2,  2,  2,  3,  3,  3,  3,
+    3,  3,  4,  4,  4,  4,  5,  5,  5,  5,  5,  6,  6,  6,  6,  7,
+    7,  7,  8,  8,  8,  9,  9,  9, 10, 10, 10, 11, 11, 11, 12, 12,
+   13, 13, 13, 14, 14, 15, 15, 16, 16, 17, 17, 18, 18, 19, 19, 20,
+   20, 21, 21, 22, 22, 23, 24, 24, 25, 25, 26, 27, 27, 28, 29, 29,
+   30, 31, 31, 32, 33, 34, 34, 35, 36, 37, 38, 38, 39, 40, 41, 42,
+   42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57,
+   58, 59, 60, 61, 62, 63, 64, 65, 66, 68, 69, 70, 71, 72, 73, 75,
+   76, 77, 78, 80, 81, 82, 84, 85, 86, 88, 89, 90, 92, 93, 94, 96,
+   97, 99,100,102,103,105,106,108,109,111,112,114,115,117,119,120,
+  122,124,125,127,129,130,132,134,136,137,139,141,143,145,146,148,
+  150,152,154,156,158,160,162,164,166,168,170,172,174,176,178,180,
+  182,184,186,188,191,193,195,197,199,202,204,206,209,211,213,215,
+  218,220,223,225,227,230,232,235,237,240,242,245,247,250,252,255 ]
+
+
 class Sun(object):
-    def __init__(self, lat, long, alt):
+    def __init__(self, lat, lon, alt):
         self.location = ephem.Observer()
 
         # San Jose International Airport
         self.location.lat = lat
-        self.location.lon = long
+        self.location.lon = lon
         self.location.elevation = alt
 
         self.location.date = datetime.datetime.now()
@@ -337,7 +372,7 @@ class myApp(object):
 
         try:
             # LED strip configuration:
-            LED_COUNT      = 482     # Number of LED pixels.
+            LED_COUNT      = 380     # Number of LED pixels.
             LED_PIN        = 18      # GPIO pin connected to the pixels (must support PWM! GPIO 13 and 18 on RPi 3).
             LED_FREQ_HZ    = 800000  # LED signal frequency in hertz (usually 800khz)
             LED_DMA        = 10      # DMA channel to use for generating signal (Between 1 and 14)
@@ -357,7 +392,7 @@ class myApp(object):
                 self.strip = neopixel.Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL, LED_STRIP)
                 self.strip.begin()
 
-                self.leds = self.strip.getPixels()
+                self.p_leds = self.strip.getPixels()
                 self.strip.setBrightness(LED_BRIGHTNESS)
 
                 # quick led check
@@ -404,6 +439,9 @@ class myApp(object):
         try:
             self.logger.info("Main starting")
 
+            # shared led array memory
+            ledArray = self.sharedArray.reshape((self.ledCount, 3))
+
             # start pattern engine process
             self.pPE.start()
 
@@ -414,35 +452,7 @@ class myApp(object):
             # start webservices process
             self.pWS.start()
 
-            # shared led array memory
-            ledArray = self.sharedArray.reshape((self.ledCount, 3))
-
             self.running = True;
-
-            #--------------
-            # https://learn.adafruit.com/led-tricks-gamma-correction
-            #
-            # Gamma8  This table remaps linear input values (e.g. 127 = half brightness)
-            # to nonlinear gamma-corrected output values (numbers producing the desired
-            # effect on the LED; e.g. 36 = half brightness)
-
-            self.gamma8 = [
-                0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-                0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,
-                1,  1,  1,  1,  1,  1,  1,  1,  1,  2,  2,  2,  2,  2,  2,  2,
-                2,  3,  3,  3,  3,  3,  3,  3,  4,  4,  4,  4,  4,  5,  5,  5,
-                5,  6,  6,  6,  6,  7,  7,  7,  7,  8,  8,  8,  9,  9,  9, 10,
-               10, 10, 11, 11, 11, 12, 12, 13, 13, 13, 14, 14, 15, 15, 16, 16,
-               17, 17, 18, 18, 19, 19, 20, 20, 21, 21, 22, 22, 23, 24, 24, 25,
-               25, 26, 27, 27, 28, 29, 29, 30, 31, 32, 32, 33, 34, 35, 35, 36,
-               37, 38, 39, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 50,
-               51, 52, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 66, 67, 68,
-               69, 70, 72, 73, 74, 75, 77, 78, 79, 81, 82, 83, 85, 86, 87, 89,
-               90, 92, 93, 95, 96, 98, 99,101,102,104,105,107,109,110,112,114,
-              115,117,119,120,122,124,126,127,129,131,133,135,137,138,140,142,
-              144,146,148,150,152,154,156,158,160,162,164,167,169,171,173,175,
-              177,180,182,184,186,189,191,193,196,198,200,203,205,208,210,213,
-              215,218,220,223,225,228,231,233,236,239,241,244,247,249,252,255 ]
 
             displayActive = False
             forceOn = False
@@ -509,9 +519,12 @@ class myApp(object):
 
                     if __LEDS__ and displayActive:
                         for i in range(self.ledCount):
-                            # gamma correct brighness with rgb leds
-                            self.strip.setPixelColorRGB(i, self.gamma8[ledArray[i][0]], self.gamma8[ledArray[i][1]], self.gamma8[ledArray[i][2]])
-                            #self.strip.setPixelColorRGB(i, ledArray[i][0], ledArray[i][1], ledArray[i][2])
+                            self.p_leds[i] = neopixel.Color(gamma8[ledArray[i][0]], gamma8[ledArray[i][1]], gamma8[ledArray[i][2]])
+
+                        #for i in range(self.ledCount):
+                        #    # gamma correct brighness with rgb leds
+                        #    self.strip.setPixelColorRGB(i, gamma8[ledArray[i][0]], gamma8[ledArray[i][1]], gamma8[ledArray[i][2]])
+                        #    #self.strip.setPixelColorRGB(i, ledArray[i][0], ledArray[i][1], ledArray[i][2])
 
                         self.strip.show()
 

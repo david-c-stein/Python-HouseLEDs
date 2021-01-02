@@ -30,6 +30,7 @@ TwoToOne = 2
 def Color(red, green, blue):
     return [red & 0xFF, green & 0xFF, blue & 0xFF]
 
+
 class ColorByName(object):
     # https://www.rapidtables.com/web/color/RGB_Color.html
     AliceBlue = [0xF0, 0xF8, 0xFF]
@@ -179,15 +180,6 @@ class ColorByName(object):
     Yellow = [0xFF, 0xFF, 0x00]
     YellowGreen = [0x9A, 0xCD, 0x32]
 
-def getRGB(color):
-    blu = color & 0xFF
-    grn = (color >> 8) & 0xFF
-    red = (color >> 16) & 0xFF
-    return red, grn, blu
-
-def getColor(red, blu, grn):
-    return (red << 16) | (grn << 8) | blu
-
 def hsvToRGB(h, s, v):
     if s == 0.0:
         v *= 255
@@ -209,6 +201,42 @@ def random8(min=0, max=0xFF):
 
 def scale8(i, scale):
     return (i * scale) >> 8
+
+'''
+  https://raw.githubusercontent.com/adafruit/Adafruit_Neopixel/master/Adafruit_NeoPixel.h
+
+  An 8-bit integer sine wave function, not directly compatible with standard trigonometric
+    units like radians or degrees.
+
+  Input angle, 0-255; 256 would loop back to zero, completing the circle (equivalent to
+    360 degrees or 2 pi radians).An unsigned 8-bit variable can be used to simply add or
+    subtract, allowing it to overflow/underflow and it still does the expected contiguous
+    thing.
+
+ returns  Sine result, 0 to 255
+
+        import math
+        for x in range(256):
+            print("{:3},".format(int((math.sin(x/128.0*math.pi)+1.0)*127.5+0.5))),
+            if x&15 == 15: print
+'''
+_NeoPixelSineTable = [
+  128,131,134,137,140,143,146,149,152,155,158,162,165,167,170,173,
+  176,179,182,185,188,190,193,196,198,201,203,206,208,211,213,215,
+  218,220,222,224,226,228,230,232,234,235,237,238,240,241,243,244,
+  245,246,248,249,250,250,251,252,253,253,254,254,254,255,255,255,
+  255,255,255,255,254,254,254,253,253,252,251,250,250,249,248,246,
+  245,244,243,241,240,238,237,235,234,232,230,228,226,224,222,220,
+  218,215,213,211,208,206,203,201,198,196,193,190,188,185,182,179,
+  176,173,170,167,165,162,158,155,152,149,146,143,140,137,134,131,
+  128,124,121,118,115,112,109,106,103,100, 97, 93, 90, 88, 85, 82,
+   79, 76, 73, 70, 67, 65, 62, 59, 57, 54, 52, 49, 47, 44, 42, 40,
+   37, 35, 33, 31, 29, 27, 25, 23, 21, 20, 18, 17, 15, 14, 12, 11,
+   10,  9,  7,  6,  5,  5,  4,  3,  2,  2,  1,  1,  1,  0,  0,  0,
+    0,  0,  0,  0,  1,  1,  1,  2,  2,  3,  4,  5,  5,  6,  7,  9,
+   10, 11, 12, 14, 15, 17, 18, 20, 21, 23, 25, 27, 29, 31, 33, 35,
+   37, 40, 42, 44, 47, 49, 52, 54, 57, 59, 62, 65, 67, 70, 73, 76,
+   79, 82, 85, 88, 90, 93, 97,100,103,106,109,112,115,118,121,124 ]
 
 def sin8(x):
     """ fast approximation : signed int8 from -127 to 127 (-0x7F to 0x7F) """
@@ -382,19 +410,16 @@ def fadeDownToColor(color1, color2, percent):
     else:
         if color1[0] < color2[0]:
             red = scale8(color1[0], keep) + scale8(color2[0], overlay)
-            #red = bound8(int((color1[0] * float(percent) / 100)) + int((color2[0] * float(100 - percent) / 100)))
         else:
             red = color1[0]
 
         if color1[1] < color2[1]:
             blu = scale8(color1[1], keep) + scale8(color2[1], overlay)
-            #blu = bound8(int((color1[1] * float(percent) / 100)) + int((color2[1] * float(100 - percent) / 100)))
         else:
             blu = color1[1]
 
         if color1[2] < color2[2]:
             grn = scale8(color1[2], keep) + scale8(color2[2], overlay)
-            #grn = bound8(int((color1[2] * float(percent) / 100)) + int((color2[2] * float(100 - percent) / 100)))
         else:
             grn = color1[2]
 
@@ -412,8 +437,7 @@ def adjBrightness(color, brightness):
 
 
 class pattern_Solid(object):
-
-    def __init__(self, leds, ledCnt, name, color, duration=None):
+    def __init__(self, leds, ledCnt, color, name='SolodColor', duration=None):
         self.ledCnt = ledCnt
         self.leds = leds
         self.name = name
@@ -425,7 +449,13 @@ class pattern_Solid(object):
 
     def step(self):
         for i in range(0, self.ledCnt):
-            self.leds[i] = self.color
+            if (i % 10) == 0:
+                self.leds[i] = self.color
+            else:
+                self.leds[i] = ColorByName.Black
+
+        self.leds[0] = self.color
+        self.leds[self.ledCnt-1] = self.color
 
         if self.duration is not None:
             self.duration -= 1
@@ -436,7 +466,6 @@ class pattern_Solid(object):
 
 
 class pattern_Rainbow(object):
-
     def __init__(self, leds, ledCnt, name='Rainbow', rate=10, duration=None):
         self.leds = leds
         self.ledCnt = ledCnt
@@ -471,7 +500,6 @@ class pattern_Rainbow(object):
 
 
 class pattern_Confetti(object):
-
     def __init__(self, leds, ledCnt, name='Confetti', color=None, bgcolor=None, count=10, rate=8, duration=None):
         self.leds = leds
         self.ledCnt = ledCnt
@@ -498,11 +526,13 @@ class pattern_Confetti(object):
 
                 if not self.color:
                     self.leds[pos] = randomColor(180)
+
                 elif self.color == 'rainbow':
                     self.j += 1
                     if self.j > (255 * 8):
                         self.j = 0
                     self.leds[pos] = rainbowWheel((self.j/8) & 0xFF)
+
                 else:
                     self.leds[pos] = self.color
 
@@ -522,8 +552,7 @@ class pattern_Confetti(object):
 
 
 class pattern_TheaterChase(object):
-
-    def __init__(self, leds, ledCnt, name, color, colorBG=None, direction=FORWARD, width=4, rate=40, duration=None):
+    def __init__(self, leds, ledCnt, color, colorBG=None, name='TheaterChase', direction=FORWARD, width=4, rate=40, duration=None):
         if colorBG is None:
             colorBG = Color(0, 0, 0)
         self.leds = leds
@@ -595,31 +624,67 @@ class pattern_TheaterChase(object):
 
 
 class pattern_RunningLights(object):
-    def __init__(self, leds, ledCnt, name, color, rate=30, duration=None):
+    def __init__(self, leds, ledCnt, color, colorBG=None, name='RunningLights', direction=FORWARD, width=8, rate=40, duration=None):
+        if colorBG is None:
+            colorBG = Color(0, 0, 0)
         self.leds = leds
         self.ledCnt = ledCnt
         self.name = name
         self.color = color
+        self.colorBG = colorBG
+        self.direction = direction
+        self.width = width
+        self.rate = rate
         self.duration = duration
 
         self.position = 0
-        self.rate = rate
         self.delay = self.rate
+
+        self.arrayColor = []
+
+        if self.direction == FORWARD:
+            cStart = 255
+            cEnd = 0
+        else:
+            cStart = 0
+            cEnd = 255
+
+        colorList = list(tween.cycleTween(tween.easeInCirc, tween.easeOutCirc, cStart, cEnd, self.width))
+        #colorList = list(tween.cycleTween(tween.easeInSine, tween.easeOutSine, cStart, cEnd, self.width))
+
+        # first check to see if this is a list of color
+        if type(self.color[0]) == list:
+            for c in self.color:
+                for i in colorList:
+                    self.arrayColor.append(blendColor(c, self.colorBG, bound8(i)))
+
+        # or just a color
+        elif type(self.color) == list:
+            for i in colorList:
+                self.arrayColor.append(blendColor(self.color, self.colorBG, bound8(i)))
+
+        else:
+            print("Unknown color")
+
+        self.sliceCnt = len(self.arrayColor)
+        self.idx = 0
+
 
     def getName(self):
         return self.name
 
     def step(self):
         if self.delay > self.rate:
-            self.position += 1
-            if self.position > (self.ledCnt * 2):
-                self.position = 0
 
-            for i in range(0, self.ledCnt):
-                s = (((math.sin(i + self.position) * 127) + 128) / 255)
-                self.leds[i] = Color(bound8(int(s * self.color[0])),
-                                     bound8(int(s * self.color[1])),
-                                     bound8(int(s * self.color[2])))
+            for i in range(0, self.sliceCnt):
+                self.leds[(i + self.idx)::self.sliceCnt] = self.arrayColor[i]
+
+            # need to fix idx for Reverse
+            if self.idx < self.sliceCnt - 1:
+                self.idx += 1
+            else:
+                self.idx = 0
+
             self.delay = 0
         else:
             self.delay += 1
@@ -633,8 +698,7 @@ class pattern_RunningLights(object):
 
 
 class pattern_FromImage(object):
-
-    def __init__(self, leds, ledCnt, name, fileName, mode='RGB', rate=200, duration=None):
+    def __init__(self, leds, ledCnt, fileName, mode='RGB', name='FromImage', rate=200, duration=None):
         self.leds = leds
         self.ledCnt = ledCnt
         self.name = name
@@ -693,7 +757,6 @@ class pattern_FromImage(object):
 # Transitions
 
 class transition_Wipe(object):
-
     def __init__(self, leds, ledCnt, ledArrayOne, ledArrayTwo, name='Wipe', direction=FORWARD, rate=20):
         self.leds = leds
         self.ledCnt = ledCnt
@@ -734,7 +797,6 @@ class transition_Wipe(object):
 
 
 class transition_Fade(object):
-
     def __init__(self, leds, ledCnt, ledArrayOne, ledArrayTwo, name='Fade', transition=OneToTwo, rate=1):
         self.leds = leds
         self.ledCnt = ledCnt
@@ -756,12 +818,9 @@ class transition_Fade(object):
         return self.name
 
     def step(self):
-
         if self.delay > self.rate:
-
             for i in range(0, self.ledCnt):
                 self.leds[i] = blendColor(self.arrayOne[i], self.arrayTwo[i], self.fade)
-
             self.fade += 1
             self.delay = 0
         else:
@@ -774,7 +833,6 @@ class transition_Fade(object):
 
 
 class transition_FadeWipe(object):
-
     def __init__(self, leds, ledCnt, ledArrayOne, ledArrayTwo, name='FadeWipe', transition=OneToTwo, direction=FORWARD, fadeWidth=40, rate=20):
         self.leds = leds
         self.ledCnt = ledCnt
@@ -799,7 +857,6 @@ class transition_FadeWipe(object):
         return self.name
 
     def step(self):
-
         if self.delay > self.rate:
 
             # |>---------->|===========================================|
@@ -844,7 +901,6 @@ class transition_FadeWipe(object):
 
 
 class transition_SparkleWipe(object):
-
     def __init__(self, leds, ledCnt, ledArrayOne, ledArrayTwo, name='SparkleWipe', transition=OneToTwo, direction=FORWARD, fadeWidth=40, rate=20):
         self.leds = leds
         self.ledCnt = ledCnt
@@ -880,7 +936,6 @@ class transition_SparkleWipe(object):
         return self.name
 
     def step(self):
-
         if self.delay > self.rate:
 
             # |>---------->|===========================================|
@@ -935,7 +990,6 @@ class transition_SparkleWipe(object):
 
 
 class transition_None(object):
-
     def __init__(self, leds, ledCnt, ledArray, name='None'):
         self.leds = leds
         self.ledCnt = ledCnt
@@ -953,7 +1007,6 @@ class transition_None(object):
 
 
 class DisplayEngine(object):
-
     def __init__(self, logger, ledArray, ledCount):
         self.logger = logger
         self.ledArray = ledArray
@@ -974,19 +1027,19 @@ class DisplayEngine(object):
         '''
 
         self.patternList = [
-            partial(pattern_Solid, name='Red', color=ColorByName.Red, duration=1000),
-            partial(pattern_Solid, name='OrangeRed', color=ColorByName.OrangeRed, duration=1000),
-            partial(pattern_Solid, name='Orange', color=ColorByName.Orange, duration=1000),
-            partial(pattern_Solid, name='Yellow', color=ColorByName.Yellow, duration=1000),
-            partial(pattern_Solid, name='YellowGreen', color=ColorByName.YellowGreen, duration=1000),
-            partial(pattern_Solid, name='Green', color=ColorByName.Green, duration=1000),
-            partial(pattern_RunningLights, name='WhiteRunningLights', color=ColorByName.WhiteSmoke, rate=8, duration=2000),
+            partial(pattern_Solid, name='Red', color=ColorByName.Red, duration=3000),
+            partial(pattern_Solid, name='OrangeRed', color=ColorByName.OrangeRed, duration=3000),
+            partial(pattern_Solid, name='Orange', color=ColorByName.Orange, duration=3000),
+            partial(pattern_Solid, name='Yellow', color=ColorByName.Yellow, duration=3000),
+            partial(pattern_Solid, name='YellowGreen', color=ColorByName.YellowGreen, duration=3000),
+            partial(pattern_Solid, name='Green', color=ColorByName.Green, duration=3000),
+            partial(pattern_RunningLights, name='WhiteRunningLights', color=ColorByName.WhiteSmoke, rate=4, duration=2000),
             partial(pattern_TheaterChase, name='WhiteTheaterChase', color=ColorByName.WhiteSmoke, rate=8, duration=2000),
             partial(pattern_Rainbow, rate=4, duration=4000),
             partial(pattern_Confetti, name='RainbowConfetti', color='rainbow', count=10, rate=2, duration=4000),
             partial(pattern_Confetti, name='WhiteConfetti', color=ColorByName.White, bgcolor=ColorByName.Black, rate=2, duration=4000),
-            partial(pattern_FromImage, name='ColorWaves', fileName="./Media/Images/ColorWaves.jpg", mode='RGB', rate=6, duration=6000),
-            partial(pattern_FromImage, name='PasteleDots', fileName="./Media/Images/PasteleDots.jpg", mode='RGB', rate=6, duration=6000),
+            #partial(pattern_FromImage, name='ColorWaves', fileName="./Media/Images/ColorWaves.jpg", mode='RGB', rate=6, duration=6000),
+            #partial(pattern_FromImage, name='PasteleDots', fileName="./Media/Images/PasteleDots.jpg", mode='RGB', rate=6, duration=6000),
         ]
 
         self.patternLen = len(self.patternList)
@@ -1006,19 +1059,15 @@ class DisplayEngine(object):
         self.state = 0
         self.prevState = -1
 
-
         self.__PATTERN_TESTING__ = False
         if self.__PATTERN_TESTING__:
-            self.patternOne = self.patternList[12](self.ledArrayOne, self.ledCount)
-
+            self.patternOne = self.patternList[0](self.ledArrayOne, self.ledCount)
 
     def tick(self):
-
         if self.__PATTERN_TESTING__:
             self.patternOne.step()
             self.normalOne.step()
         else:
-
             # Play Pattern One
             if 0 == self.state:
                 if not self.patternOne.step():
@@ -1071,12 +1120,10 @@ class DisplayEngine(object):
                 self.prevState = self.state
                 self.logger.debug("  >>>>> Display State: " + str(self.state))
 
-
     def getPatterns(self):
         patternNames = []
         for i in range(self.patternLen):
-            self.pat = self.patternList[i](self.ledArrayOne, self.ledCount)
-            patternNames.append(self.pat.getName())
+            patternNames.append(self.patternList[i](None, self.ledCount).getName())
         return patternNames
 
     def setPattern(self, name):
@@ -1084,7 +1131,6 @@ class DisplayEngine(object):
 
 
 class PatternEngine(multiprocessing.Process if Global.__MULTIPROCESSING__ else threading.Thread):
-
     def __init__(self, qApp, qAud, qWeb, qPat, config, sharedArrayBase, ledCount):
         if Global.__MULTIPROCESSING__:
             # -- multiprocessing
@@ -1098,6 +1144,7 @@ class PatternEngine(multiprocessing.Process if Global.__MULTIPROCESSING__ else t
         self.logger = logging.getLogger(__name__)
         self.logger.info("Initializing " + __file__)
 
+        # shared array
         self.ledCount = ledCount
         sharedArray = numpy.ctypeslib.as_array(sharedArrayBase)
         self.ledArray = sharedArray.reshape((self.ledCount, 3))
@@ -1113,7 +1160,8 @@ class PatternEngine(multiprocessing.Process if Global.__MULTIPROCESSING__ else t
 
         # display engine
         self.engine = DisplayEngine(self.logger, self.ledArray, self.ledCount)
-
+        self.patternNames = self.engine.getPatterns()
+        
         self.running = True
 
     def putApp(self, data):
@@ -1142,13 +1190,11 @@ class PatternEngine(multiprocessing.Process if Global.__MULTIPROCESSING__ else t
         self.msPrev = msCurr
 
     def run(self):
-
-        # called on start() signal
         try:
             self.logger.info("Running PatternEngine process")
 
             # send over the list of patterns
-            self.putWeb({'addPattern': self.engine.getPatterns()})
+            self.putWeb({'addPattern': self.patternNames})
 
             displayActive = False
             forceActive = False
