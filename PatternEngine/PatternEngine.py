@@ -449,13 +449,7 @@ class pattern_Solid(object):
 
     def step(self):
         for i in range(0, self.ledCnt):
-            if (i % 10) == 0:
-                self.leds[i] = self.color
-            else:
-                self.leds[i] = ColorByName.Black
-
-        self.leds[0] = self.color
-        self.leds[self.ledCnt-1] = self.color
+            self.leds[i] = self.color
 
         if self.duration is not None:
             self.duration -= 1
@@ -624,7 +618,7 @@ class pattern_TheaterChase(object):
 
 
 class pattern_RunningLights(object):
-    def __init__(self, leds, ledCnt, color, colorBG=None, name='RunningLights', direction=FORWARD, width=8, rate=40, duration=None):
+    def __init__(self, leds, ledCnt, color, colorBG=None, name='RunningLights', direction=FORWARD, width=4, rate=40, duration=None):
         if colorBG is None:
             colorBG = Color(0, 0, 0)
         self.leds = leds
@@ -649,8 +643,7 @@ class pattern_RunningLights(object):
             cStart = 0
             cEnd = 255
 
-        colorList = list(tween.cycleTween(tween.easeInCirc, tween.easeOutCirc, cStart, cEnd, self.width))
-        #colorList = list(tween.cycleTween(tween.easeInSine, tween.easeOutSine, cStart, cEnd, self.width))
+        colorList = list(tween.cycleTween(tween.easeInSine, tween.easeOutSine, cStart, cEnd, self.width))
 
         # first check to see if this is a list of color
         if type(self.color[0]) == list:
@@ -715,8 +708,15 @@ class pattern_FromImage(object):
         # plt.show()
 
         self.width, self.length, self.dim = numpy.shape(self.image)
-        if self.width != self.ledCnt:
-            raise Exception("Image size error")
+
+        # trim image width if too wide
+        if self.width > self.ledCnt:
+            self.image = self.image[:self.ledCnt,:,:]
+
+        # compain if image width is too narrow
+        if self.width < self.ledCnt:
+            raise Exception("Image width is too small")
+            
         if self.dim == 4:
             self.transparency = [0] * self.ledCnt
 
@@ -1038,8 +1038,9 @@ class DisplayEngine(object):
             partial(pattern_Rainbow, rate=4, duration=4000),
             partial(pattern_Confetti, name='RainbowConfetti', color='rainbow', count=10, rate=2, duration=4000),
             partial(pattern_Confetti, name='WhiteConfetti', color=ColorByName.White, bgcolor=ColorByName.Black, rate=2, duration=4000),
-            #partial(pattern_FromImage, name='ColorWaves', fileName="./Media/Images/ColorWaves.jpg", mode='RGB', rate=6, duration=6000),
-            #partial(pattern_FromImage, name='PasteleDots', fileName="./Media/Images/PasteleDots.jpg", mode='RGB', rate=6, duration=6000),
+            partial(pattern_FromImage, name='ColorWaves', fileName="./Media/Images/ColorWaves.jpg", mode='RGB', rate=6, duration=6000),
+            partial(pattern_FromImage
+            , name='PasteleDots', fileName="./Media/Images/PasteleDots.jpg", mode='RGB', rate=6, duration=6000),
         ]
 
         self.patternLen = len(self.patternList)
